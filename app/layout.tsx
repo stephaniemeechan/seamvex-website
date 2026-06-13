@@ -13,23 +13,9 @@ export const metadata: Metadata = {
   title: 'Seamcor — Grown Up Technology | Seamvex Data Systems Ltd',
   description:
     'Seamcor is a fully customisable Business Information & Workflow Management system. Operated by Seamvex Data Systems Ltd. Honest, fair, practical software with premium support.',
-  generator: 'v0.app',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/logos/seamcor-icon.png',
+    apple: '/logos/seamcor-icon.png',
   },
 }
 

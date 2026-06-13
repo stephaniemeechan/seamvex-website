@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { LOGO, TESTIMONIALS } from "@/lib/brand"
 import { ArrowRight, Table2, ShieldCheck, Workflow, Smartphone, Clock, Quote } from "lucide-react"
 
 const capabilities = [
@@ -24,21 +25,6 @@ const capabilities = [
     icon: Smartphone,
     title: "Works on the go",
     body: "Any modern browser plus a native mobile app, so your team can capture data anywhere.",
-  },
-]
-
-const testimonials = [
-  {
-    quote:
-      "Our colleagues and compliance teams can access vital information at the click of a button, without wading through stacks of paper. It saves a lot of time.",
-    name: "Lisa Widdison",
-    role: "Director of Retail Operations, Holland & Barrett",
-  },
-  {
-    quote:
-      "The Seamcor software has made a tangible difference to our process. A low-cost innovation that lets us react in real time as challenges are identified.",
-    name: "Ricardo Sousa",
-    role: "Technical Manager, Gressingham",
   },
 ]
 
@@ -83,10 +69,10 @@ export default function HomePage() {
               <div className="relative rounded-3xl border border-border bg-card p-10 shadow-sm">
                 <div className="absolute inset-x-8 -bottom-px h-px bg-accent/40" />
                 <Image
-                  src="/seamcor-logo.png"
-                  alt="Seamcor — Grown Up Technology"
-                  width={420}
-                  height={150}
+                  src={LOGO.marketing.src}
+                  alt={LOGO.marketing.alt}
+                  width={LOGO.marketing.width}
+                  height={LOGO.marketing.height}
                   priority
                   className="h-auto w-full max-w-sm"
                 />
@@ -171,8 +157,8 @@ export default function HomePage() {
               From retail to food production, organisations rely on Seamcor to keep compliance and
               operations running in real time.
             </p>
-            <div className="mt-10 grid gap-6 md:grid-cols-2">
-              {testimonials.map((t) => (
+            <div className="mt-10 grid gap-6 sm:grid-cols-2">
+              {TESTIMONIALS.map((t) => (
                 <figure key={t.name} className="flex flex-col rounded-2xl border border-border bg-card p-7">
                   <Quote className="h-7 w-7 text-accent" />
                   <blockquote className="mt-4 flex-1 text-pretty leading-relaxed text-card-foreground">

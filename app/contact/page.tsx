@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { CONTACT } from "@/lib/brand"
 import { Phone, Mail, MapPin, Clock, User, LifeBuoy, Receipt } from "lucide-react"
 
 export default function ContactPage() {
@@ -24,94 +25,41 @@ export default function ContactPage() {
         </section>
 
         {/* Contact details */}
-        <section className="bg-background">
-          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="grid gap-4 sm:grid-cols-2">
+        <section className="bg-background pb-20">
+          <div className="mx-auto max-w-3xl px-4 py-20 sm:px-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ContactCard
+                icon={Mail}
+                label="Sales"
+                lines={[CONTACT.sales]}
+                href={`mailto:${CONTACT.sales}`}
+              />
+              <ContactCard
+                icon={LifeBuoy}
+                label="Support"
+                lines={[CONTACT.support]}
+                href={`mailto:${CONTACT.support}`}
+              />
+              <ContactCard
+                icon={Receipt}
+                label="Accounts"
+                lines={[CONTACT.accounts]}
+                href={`mailto:${CONTACT.accounts}`}
+              />
+              <ContactCard
+                icon={Phone}
+                label="Phone"
+                lines={[CONTACT.phone]}
+                href={`tel:${CONTACT.phone.replace(/\s/g, "")}`}
+              />
+              <ContactCard icon={User} label="Director" lines={["Stephanie Meechan"]} />
+              <ContactCard icon={Clock} label="Support hours" lines={["7 days a week", "8:00 – 20:00"]} />
+              <div className="sm:col-span-2">
                 <ContactCard
-                  icon={Mail}
-                  label="General enquiries"
-                  lines={["hello@seamcor.com"]}
-                  href="mailto:hello@seamcor.com"
+                  icon={MapPin}
+                  label="Registered office"
+                  lines={["Church Court, Stourbridge Road,", "Halesowen, England, B63 3TT"]}
                 />
-                <ContactCard
-                  icon={LifeBuoy}
-                  label="Support"
-                  lines={["support@seamcor.com"]}
-                  href="mailto:support@seamcor.com"
-                />
-                <ContactCard
-                  icon={Receipt}
-                  label="Accounts"
-                  lines={["accounts@seamcor.com"]}
-                  href="mailto:accounts@seamcor.com"
-                />
-                <ContactCard icon={Phone} label="Phone" lines={["+44 7392 991808"]} href="tel:+447392991808" />
-                <ContactCard icon={User} label="Director" lines={["Stephanie Meechan"]} />
-                <ContactCard icon={Clock} label="Support hours" lines={["7 days a week", "8:00 – 20:00"]} />
-                <div className="sm:col-span-2">
-                  <ContactCard
-                    icon={MapPin}
-                    label="Registered office"
-                    lines={["Church Court, Stourbridge Road,", "Halesowen, England, B63 3TT"]}
-                  />
-                </div>
-              </div>
-
-              {/* Contact form */}
-              <div className="rounded-3xl border border-border bg-secondary/50 p-6 sm:p-8">
-                <h2 className="text-xl font-bold text-primary">Send us a message</h2>
-                <p className="mt-1 text-sm text-muted-foreground">We&apos;ll reply as soon as we can.</p>
-                <form className="mt-6 space-y-4">
-                  <Field id="name" label="Name">
-                    <input
-                      id="name"
-                      name="name"
-                      type="text"
-                      autoComplete="name"
-                      className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring focus:ring-2"
-                    />
-                  </Field>
-                  <Field id="email" label="Email">
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      autoComplete="email"
-                      className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring focus:ring-2"
-                    />
-                  </Field>
-                  <Field id="company" label="Company (optional)">
-                    <input
-                      id="company"
-                      name="company"
-                      type="text"
-                      autoComplete="organization"
-                      className="w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring focus:ring-2"
-                    />
-                  </Field>
-                  <Field id="message" label="Message">
-                    <textarea
-                      id="message"
-                      name="message"
-                      rows={4}
-                      className="w-full resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring focus:ring-2"
-                    />
-                  </Field>
-                  <button
-                    type="submit"
-                    className="w-full rounded-full bg-accent px-6 py-3 text-sm font-semibold text-accent-foreground transition-colors hover:opacity-90"
-                  >
-                    Send message
-                  </button>
-                  <p className="text-center text-xs text-muted-foreground">
-                    Prefer to talk? Call us on{" "}
-                    <a href="tel:+447392991808" className="font-medium text-accent hover:underline">
-                      +44 7392 991808
-                    </a>
-                    .
-                  </p>
-                </form>
               </div>
             </div>
           </div>
@@ -154,23 +102,4 @@ function ContactCard({
     )
   }
   return content
-}
-
-function Field({
-  id,
-  label,
-  children,
-}: {
-  id: string
-  label: string
-  children: React.ReactNode
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-primary">
-        {label}
-      </label>
-      {children}
-    </div>
-  )
 }

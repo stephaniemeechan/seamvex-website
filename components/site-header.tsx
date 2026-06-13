@@ -5,6 +5,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
+import { LOGO } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
 const links = [
@@ -23,10 +24,10 @@ export function SiteHeader() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center" aria-label="Seamcor home">
           <Image
-            src="/seamcor-logo.png"
-            alt="Seamcor — Grown Up Technology"
-            width={320}
-            height={170}
+            src={LOGO.marketing.src}
+            alt={LOGO.marketing.alt}
+            width={LOGO.marketing.width}
+            height={LOGO.marketing.height}
             priority
             className="h-14 w-auto sm:h-16"
           />

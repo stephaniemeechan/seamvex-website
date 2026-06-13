@@ -1,19 +1,22 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Phone, Mail, MapPin } from "lucide-react"
+import { CONTACT, LOGO, TRADEMARK_NOTICE } from "@/lib/brand"
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-primary text-primary-foreground">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3">
         <div>
-          <Image
-            src="/seamvex-logo.png"
-            alt="Seamvex Data Systems Ltd"
-            width={240}
-            height={96}
-            className="h-16 w-auto rounded-md bg-background px-3 py-2"
-          />
+          <div className="inline-block rounded-lg bg-background px-4 py-3">
+            <Image
+              src={LOGO.marketing.src}
+              alt={LOGO.marketing.alt}
+              width={LOGO.marketing.width}
+              height={LOGO.marketing.height}
+              className="h-12 w-auto"
+            />
+          </div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-primary-foreground/70">
             Seamvex Data Systems Ltd, trading as Seamcor. Grown up technology, run on honest,
             straightforward principles.
@@ -59,26 +62,26 @@ export function SiteFooter() {
             </li>
             <li className="flex items-center gap-3">
               <Phone className="h-4 w-4 shrink-0 text-accent" />
-              <a href="tel:+447392991808" className="transition-colors hover:text-accent">
-                +44 7392 991808
+              <a href={`tel:${CONTACT.phone.replace(/\s/g, "")}`} className="transition-colors hover:text-accent">
+                {CONTACT.phone}
               </a>
             </li>
             <li className="flex items-center gap-3">
               <Mail className="h-4 w-4 shrink-0 text-accent" />
-              <a href="mailto:hello@seamcor.com" className="transition-colors hover:text-accent">
-                hello@seamcor.com
+              <a href={`mailto:${CONTACT.sales}`} className="transition-colors hover:text-accent">
+                {CONTACT.sales}
               </a>
             </li>
             <li className="flex items-center gap-3">
               <Mail className="h-4 w-4 shrink-0 text-accent" />
-              <a href="mailto:support@seamcor.com" className="transition-colors hover:text-accent">
-                support@seamcor.com
+              <a href={`mailto:${CONTACT.support}`} className="transition-colors hover:text-accent">
+                {CONTACT.support}
               </a>
             </li>
             <li className="flex items-center gap-3">
               <Mail className="h-4 w-4 shrink-0 text-accent" />
-              <a href="mailto:accounts@seamcor.com" className="transition-colors hover:text-accent">
-                accounts@seamcor.com
+              <a href={`mailto:${CONTACT.accounts}`} className="transition-colors hover:text-accent">
+                {CONTACT.accounts}
               </a>
             </li>
           </ul>
@@ -88,10 +91,7 @@ export function SiteFooter() {
       <div className="border-t border-primary-foreground/10">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-primary-foreground/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>&copy; {new Date().getFullYear()} Seamvex Data Systems Ltd. All rights reserved.</p>
-          <p>
-            Seamvex Data Systems Ltd holds the sole reseller agreement and right to use the Seamcor
-            trademark and software.
-          </p>
+          <p>{TRADEMARK_NOTICE}</p>
         </div>
       </div>
     </footer>
