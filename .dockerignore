@@ -1,0 +1,32 @@
+# Dependencies and build output
+node_modules
+.next
+out
+.pnpm-store
+
+# Local-only brand folder (legal docs, Temp/, source logos, scripts)
+branding
+
+# Git and local tooling
+.git
+.gitignore
+.cursor
+.vscode
+*.md
+!README.md
+
+# Env and secrets
+.env
+.env.*
+
+# Vercel / v0 sandbox
+.vercel
+.v0-trash
+.snowflake
+
+# Tests and CI artifacts (not needed in image)
+coverage
+*.log
+
+# Master logo crop source — local rebuild only; site uses public/logos/
+public/seamcor-logo.png

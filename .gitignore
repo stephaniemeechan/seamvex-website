@@ -8,8 +8,19 @@ __v0_jsx-dev-runtime.ts
 
 # Environment variables
 .env*.local
+.env
+
+# Local brand assets, legal source docs, and build scripts — NOT for GitHub or production
+branding/
+
+# Master logo source used only for local logo rebuild scripts (website uses public/logos/)
+public/seamcor-logo.png
 
 # Common ignores
 node_modules
 .next/
 .DS_Store
+*.log
+
+# IDE / OS
+Thumbs.db

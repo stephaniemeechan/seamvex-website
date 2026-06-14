@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { LOGO, TRADEMARK_NOTICE, SEAMCOR_JOURNEY } from "@/lib/brand"
+import { LOGO, TRADEMARK_NOTICE, COMPANY, SEAMCOR_JOURNEY } from "@/lib/brand"
 import { ArrowRight, Scale, Heart, Handshake, ShieldCheck, Sprout } from "lucide-react"
 
 const values = [
@@ -179,10 +179,12 @@ export default function AboutPage() {
               />
             </div>
             <dl className="mt-10 divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
-              <Fact label="Company" value="Seamvex Data Systems Ltd" />
-              <Fact label="Trading as" value="Seamcor" />
-              <Fact label="Registered office" value="Church Court, Stourbridge Road, Halesowen, England, B63 3TT" />
-              <Fact label="Nature of business" value="Software publishing" />
+              <Fact label="Company" value={COMPANY.legalName} />
+              <Fact label="Trading as" value={COMPANY.tradingName} />
+              <Fact label="Company number" value={COMPANY.number} />
+              <Fact label="Registered in" value={COMPANY.jurisdiction} />
+              <Fact label="Registered office" value={COMPANY.registeredOffice.singleLine} />
+              <Fact label="Nature of business" value={COMPANY.natureOfBusiness} />
             </dl>
             <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{TRADEMARK_NOTICE}</p>
           </div>

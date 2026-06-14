@@ -11,6 +11,18 @@ export const LOGO = {
     height: 390,
     alt: "Seamcor — Grown Up Technology",
   },
+  legal: {
+    src: "/logos/seamcor-legal.png",
+    width: 1601,
+    height: 430,
+    alt: "Seamvex Data Systems Ltd trading as Seamcor — Grown Up Technology",
+  },
+  legalTransparent: {
+    src: "/logos/seamcor-legal-transparent.png",
+    width: 1601,
+    height: 430,
+    alt: "Seamvex Data Systems Ltd trading as Seamcor — Grown Up Technology",
+  },
   icon: {
     src: "/logos/seamcor-icon.png",
     width: 1601,
@@ -19,12 +31,38 @@ export const LOGO = {
   },
 } as const
 
+export const TAGLINE = "Grown Up Technology"
+
+export const COMPANY = {
+  legalName: "Seamvex Data Systems Ltd",
+  tradingName: "Seamcor",
+  number: "17188046",
+  jurisdiction: "England and Wales",
+  registeredOffice: {
+    lines: ["Church Court, Stourbridge Road", "Halesowen, England, B63 3TT"],
+    singleLine: "Church Court, Stourbridge Road, Halesowen, England, B63 3TT",
+  },
+  websites: ["https://seamcor.com", "https://seamvex.com"],
+  natureOfBusiness: "Software publishing",
+} as const
+
 export const CONTACT = {
   sales: "sales@seamcor.com",
   support: "support@seamcor.com",
   accounts: "accounts@seamcor.com",
+  privacy: "accounts@seamcor.com",
   phone: "+44 7392 991808",
 } as const
+
+export const LEGAL = {
+  privacy: "/legal/privacy",
+  cookies: "/legal/cookies",
+  terms: "/legal/terms",
+  lastUpdated: "14 June 2026",
+} as const
+
+export const COOKIE_CONSENT_KEY = "seamcor-cookie-consent"
+export const COOKIE_CONSENT_EVENT = "seamcor-cookie-consent-updated"
 
 export const TRADEMARK_NOTICE =
   "Seamvex Data Systems Ltd is the exclusive distributor of Seamcor software and holds the exclusive right to use the Seamcor trademark."

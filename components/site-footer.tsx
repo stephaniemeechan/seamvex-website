@@ -1,12 +1,13 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Phone, Mail, MapPin } from "lucide-react"
-import { CONTACT, LOGO, TRADEMARK_NOTICE } from "@/lib/brand"
+import { FooterLegalLinks } from "@/components/footer-legal-links"
+import { COMPANY, CONTACT, LOGO, TAGLINE, TRADEMARK_NOTICE } from "@/lib/brand"
 
 export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-primary text-primary-foreground">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-4">
         <div>
           <div className="inline-block rounded-lg bg-background px-4 py-3">
             <Image
@@ -18,8 +19,11 @@ export function SiteFooter() {
             />
           </div>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-primary-foreground/70">
-            Seamvex Data Systems Ltd, trading as Seamcor. Grown up technology, run on honest,
+            {COMPANY.legalName}, trading as {COMPANY.tradingName}. {TAGLINE}, run on honest,
             straightforward principles.
+          </p>
+          <p className="mt-3 text-xs leading-relaxed text-primary-foreground/60">
+            Registered in {COMPANY.jurisdiction}. Company number {COMPANY.number}.
           </p>
         </div>
 
@@ -53,12 +57,19 @@ export function SiteFooter() {
 
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-wide text-primary-foreground/90">
+            Legal
+          </h3>
+          <FooterLegalLinks />
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-primary-foreground/90">
             Contact
           </h3>
           <ul className="mt-4 space-y-3 text-sm text-primary-foreground/70">
             <li className="flex items-start gap-3">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-              <span>Church Court, Stourbridge Road, Halesowen, England, B63 3TT</span>
+              <span>{COMPANY.registeredOffice.singleLine}</span>
             </li>
             <li className="flex items-center gap-3">
               <Phone className="h-4 w-4 shrink-0 text-accent" />
@@ -89,8 +100,12 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-primary-foreground/10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-primary-foreground/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>&copy; {new Date().getFullYear()} Seamvex Data Systems Ltd. All rights reserved.</p>
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-5 text-xs text-primary-foreground/60 sm:px-6">
+          <p>
+            &copy; {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved. {COMPANY.legalName} is
+            registered in {COMPANY.jurisdiction} (company number {COMPANY.number}), trading as {COMPANY.tradingName}.
+            Registered office: {COMPANY.registeredOffice.singleLine}.
+          </p>
           <p>{TRADEMARK_NOTICE}</p>
         </div>
       </div>
