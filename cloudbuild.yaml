@@ -1,5 +1,11 @@
-# Google Cloud Build — connect this repo from GitHub in Cloud Build triggers.
-# Project: seamvex.com (set substitution defaults in the trigger if needed)
+# Cloud Run deploy for seamvex-website (europe-west1).
+#
+# IMPORTANT — this file is used ONLY when the Cloud Build trigger is configured as:
+#   Configuration: Cloud Build configuration file → /cloudbuild.yaml
+# Cloud Run "Connect repository" (Dockerfile-only) does NOT read this file.
+# If using Connect repository instead, set in the wizard:
+#   Region europe-west1 · Port 8080 · Allow unauthenticated · Ingress All
+# Do NOT create a second service in europe-west2.
 
 substitutions:
   _REGION: europe-west1
@@ -34,7 +40,6 @@ steps:
       - --platform
       - managed
       - --allow-unauthenticated
-      # Public marketing site — default Cloud Run repo deploy sets ingress=internal (404 from internet)
       - --ingress
       - all
       - --port
