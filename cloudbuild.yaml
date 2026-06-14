@@ -2,8 +2,8 @@
 # Project: seamvex.com (set substitution defaults in the trigger if needed)
 
 substitutions:
-  _REGION: europe-west2
-  _SERVICE: seamcor-website
+  _REGION: europe-west1
+  _SERVICE: seamvex-website
 
 steps:
   - name: gcr.io/cloud-builders/docker
