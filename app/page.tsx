@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { LOGO, TESTIMONIALS } from "@/lib/brand"
+import { PRODUCT_IMAGES, TESTIMONIALS, CUSTOMER_REASSURANCE } from "@/lib/brand"
 import { ArrowRight, Table2, ShieldCheck, Workflow, Smartphone, Clock, Quote } from "lucide-react"
 
 const capabilities = [
@@ -66,15 +66,15 @@ export default function HomePage() {
               </div>
             </div>
             <div className="flex justify-center md:justify-end">
-              <div className="relative rounded-3xl border border-border bg-card p-10 shadow-sm">
-                <div className="absolute inset-x-8 -bottom-px h-px bg-accent/40" />
+              <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+                <div className="absolute inset-x-8 -bottom-px z-10 h-px bg-accent/40" />
                 <Image
-                  src={LOGO.marketing.src}
-                  alt={LOGO.marketing.alt}
-                  width={LOGO.marketing.width}
-                  height={LOGO.marketing.height}
+                  src={PRODUCT_IMAGES.multiDevice.src}
+                  alt={PRODUCT_IMAGES.multiDevice.alt}
+                  width={PRODUCT_IMAGES.multiDevice.width}
+                  height={PRODUCT_IMAGES.multiDevice.height}
                   priority
-                  className="h-auto w-full max-w-sm"
+                  className="h-auto w-full max-w-xl"
                 />
               </div>
             </div>
@@ -93,6 +93,26 @@ export default function HomePage() {
               one-size-fits-all approach. Whatever your industry, Seamcor adapts to the way you
               already work.
             </p>
+            <div className="mt-10 grid gap-6 md:grid-cols-2">
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.featuresIsometric.src}
+                  alt={PRODUCT_IMAGES.featuresIsometric.alt}
+                  width={PRODUCT_IMAGES.featuresIsometric.width}
+                  height={PRODUCT_IMAGES.featuresIsometric.height}
+                  className="h-auto w-full"
+                />
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.departmentOverview.src}
+                  alt={PRODUCT_IMAGES.departmentOverview.alt}
+                  width={PRODUCT_IMAGES.departmentOverview.width}
+                  height={PRODUCT_IMAGES.departmentOverview.height}
+                  className="h-auto w-full"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -118,6 +138,62 @@ export default function HomePage() {
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
                 </div>
               ))}
+            </div>
+            <div className="mt-12 grid gap-6 md:grid-cols-2">
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.mobileTrio.src}
+                  alt={PRODUCT_IMAGES.mobileTrio.alt}
+                  width={PRODUCT_IMAGES.mobileTrio.width}
+                  height={PRODUCT_IMAGES.mobileTrio.height}
+                  className="h-auto w-full"
+                />
+              </div>
+              <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
+                <Image
+                  src={PRODUCT_IMAGES.mobileTaskList.src}
+                  alt={PRODUCT_IMAGES.mobileTaskList.alt}
+                  width={PRODUCT_IMAGES.mobileTaskList.width}
+                  height={PRODUCT_IMAGES.mobileTaskList.height}
+                  className="h-auto w-full max-w-[280px]"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Existing customers */}
+        <section className="border-b border-border bg-secondary/50">
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+            <div className="grid items-center gap-10 md:grid-cols-2">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-accent">
+                  For existing customers
+                </p>
+                <h2 className="mt-3 text-balance text-2xl font-bold text-primary sm:text-3xl">
+                  {CUSTOMER_REASSURANCE.headline}
+                </h2>
+                <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
+                  {CUSTOMER_REASSURANCE.intro}
+                </p>
+                <ul className="mt-6 space-y-3 text-sm leading-relaxed text-muted-foreground">
+                  {CUSTOMER_REASSURANCE.points.map((point) => (
+                    <li key={point} className="flex gap-3">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.complianceForm.src}
+                  alt={PRODUCT_IMAGES.complianceForm.alt}
+                  width={PRODUCT_IMAGES.complianceForm.width}
+                  height={PRODUCT_IMAGES.complianceForm.height}
+                  className="h-auto w-full"
+                />
+              </div>
             </div>
           </div>
         </section>

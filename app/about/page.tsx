@@ -2,7 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { LOGO, TRADEMARK_NOTICE, COMPANY, SEAMCOR_JOURNEY } from "@/lib/brand"
+import { LOGO, TRADEMARK_NOTICE, COMPANY, SEAMCOR_JOURNEY, PRODUCT_IMAGES } from "@/lib/brand"
 import { ArrowRight, Scale, Heart, Handshake, ShieldCheck, Sprout } from "lucide-react"
 
 const values = [
@@ -43,7 +43,7 @@ export default function AboutPage() {
               Built on principles, run by people who care.
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground">
-              Seamvex Data Systems Ltd is the company behind Seamcor — founded to do things a little
+              {COMPANY.legalName}, trading as {COMPANY.tradingName} — founded to do things a little
               differently.
             </p>
           </div>
@@ -96,6 +96,15 @@ export default function AboutPage() {
               &ldquo;We don&apos;t need to be proved right or wrong. We just want to do good work, treat
               people fairly, and build something we&apos;re proud of.&rdquo;
             </blockquote>
+            <div className="mt-10 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+              <Image
+                src={PRODUCT_IMAGES.tabletTask.src}
+                alt={PRODUCT_IMAGES.tabletTask.alt}
+                width={PRODUCT_IMAGES.tabletTask.width}
+                height={PRODUCT_IMAGES.tabletTask.height}
+                className="h-auto w-full"
+              />
+            </div>
           </div>
         </section>
 

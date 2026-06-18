@@ -1,6 +1,8 @@
 import Link from "next/link"
+import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { PRODUCT_IMAGES } from "@/lib/brand"
 import {
   ArrowRight,
   Cloud,
@@ -115,19 +117,28 @@ export default function ServicesPage() {
                   to individuals or groups, with triggers, alerts, photos, videos and signatures.
                 </p>
               </div>
-              <div className="rounded-2xl border border-border bg-secondary/50 p-7">
-                <h3 className="font-semibold text-primary">The benefits, in short</h3>
-                <ul className="mt-5 space-y-3">
-                  {benefits.map((b) => (
-                    <li key={b} className="flex items-start gap-3 text-sm text-muted-foreground">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
-                        <Check className="h-3.5 w-3.5" />
-                      </span>
-                      <span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.departmentOverview.src}
+                  alt={PRODUCT_IMAGES.departmentOverview.alt}
+                  width={PRODUCT_IMAGES.departmentOverview.width}
+                  height={PRODUCT_IMAGES.departmentOverview.height}
+                  className="h-auto w-full"
+                />
               </div>
+            </div>
+            <div className="mt-10 rounded-2xl border border-border bg-secondary/50 p-7">
+              <h3 className="font-semibold text-primary">The benefits, in short</h3>
+              <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+                {benefits.map((b) => (
+                  <li key={b} className="flex items-start gap-3 text-sm text-muted-foreground">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                    <span>{b}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </section>
@@ -179,6 +190,110 @@ export default function ServicesPage() {
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{d.body}</p>
                 </div>
               ))}
+            </div>
+            <div className="mt-12 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+              <Image
+                src={PRODUCT_IMAGES.mobileTrio.src}
+                alt={PRODUCT_IMAGES.mobileTrio.alt}
+                width={PRODUCT_IMAGES.mobileTrio.width}
+                height={PRODUCT_IMAGES.mobileTrio.height}
+                className="h-auto w-full"
+              />
+            </div>
+            <div className="mt-6 grid gap-6 sm:grid-cols-2">
+              <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
+                <Image
+                  src={PRODUCT_IMAGES.mobileTaskList.src}
+                  alt={PRODUCT_IMAGES.mobileTaskList.alt}
+                  width={PRODUCT_IMAGES.mobileTaskList.width}
+                  height={PRODUCT_IMAGES.mobileTaskList.height}
+                  className="h-auto w-full max-w-[280px]"
+                />
+              </div>
+              <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
+                <Image
+                  src={PRODUCT_IMAGES.mobileCompliance.src}
+                  alt={PRODUCT_IMAGES.mobileCompliance.alt}
+                  width={PRODUCT_IMAGES.mobileCompliance.width}
+                  height={PRODUCT_IMAGES.mobileCompliance.height}
+                  className="h-auto w-full max-w-[280px]"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* See it in action */}
+        <section className="border-y border-border bg-secondary/50">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+            <div className="mb-12 max-w-2xl">
+              <h2 className="text-2xl font-bold text-primary sm:text-3xl">See it in action</h2>
+              <p className="mt-3 leading-relaxed text-muted-foreground">
+                From auditing and device registration to mobile field capture and department
+                reports — the same workflows your teams already rely on.
+              </p>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <figure className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.auditingDashboard.src}
+                  alt={PRODUCT_IMAGES.auditingDashboard.alt}
+                  width={PRODUCT_IMAGES.auditingDashboard.width}
+                  height={PRODUCT_IMAGES.auditingDashboard.height}
+                  className="h-auto w-full"
+                />
+                <figcaption className="p-4 text-sm font-medium text-muted-foreground">
+                  Auditing with department filters and task sessions
+                </figcaption>
+              </figure>
+              <figure className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.pdaRegistration.src}
+                  alt={PRODUCT_IMAGES.pdaRegistration.alt}
+                  width={PRODUCT_IMAGES.pdaRegistration.width}
+                  height={PRODUCT_IMAGES.pdaRegistration.height}
+                  className="h-auto w-full"
+                />
+                <figcaption className="p-4 text-sm font-medium text-muted-foreground">
+                  Device registration for handheld and field equipment
+                </figcaption>
+              </figure>
+              <figure className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.analyticsReport.src}
+                  alt={PRODUCT_IMAGES.analyticsReport.alt}
+                  width={PRODUCT_IMAGES.analyticsReport.width}
+                  height={PRODUCT_IMAGES.analyticsReport.height}
+                  className="h-auto w-full"
+                />
+                <figcaption className="p-4 text-sm font-medium text-muted-foreground">
+                  Department analysis reports with non-conformance metrics
+                </figcaption>
+              </figure>
+              <figure className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.complianceForm.src}
+                  alt={PRODUCT_IMAGES.complianceForm.alt}
+                  width={PRODUCT_IMAGES.complianceForm.width}
+                  height={PRODUCT_IMAGES.complianceForm.height}
+                  className="h-auto w-full"
+                />
+                <figcaption className="p-4 text-sm font-medium text-muted-foreground">
+                  Compliance tasks with photos, checklists and signatures
+                </figcaption>
+              </figure>
+            </div>
+            <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+              <Image
+                src={PRODUCT_IMAGES.taskBuilder.src}
+                alt={PRODUCT_IMAGES.taskBuilder.alt}
+                width={PRODUCT_IMAGES.taskBuilder.width}
+                height={PRODUCT_IMAGES.taskBuilder.height}
+                className="h-auto w-full"
+              />
+              <p className="border-t border-border p-4 text-sm font-medium text-muted-foreground">
+                Task builder — validation rules and workflow triggers
+              </p>
             </div>
           </div>
         </section>

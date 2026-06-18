@@ -31,6 +31,81 @@ export const LOGO = {
   },
 } as const
 
+export const PRODUCT_IMAGES = {
+  auditingDashboard: {
+    src: "/images/product/auditing-dashboard.png",
+    width: 1600,
+    height: 1000,
+    alt: "Seamcor auditing screen with department filters and task grid — familiar workflow layout",
+  },
+  multiDevice: {
+    src: "/images/product/multi-device.png",
+    width: 1600,
+    height: 1000,
+    alt: "Seamcor on desktop, laptop, mobile and tablet — compliance tasks, My Business and task builder",
+  },
+  mobileTrio: {
+    src: "/images/product/mobile-trio.png",
+    width: 1600,
+    height: 900,
+    alt: "Seamcor mobile app — task menu, compliance forms and product specification capture",
+  },
+  pdaRegistration: {
+    src: "/images/product/pda-registration.png",
+    width: 1600,
+    height: 1000,
+    alt: "Seamcor device registration screen for managing handheld and field devices",
+  },
+  featuresIsometric: {
+    src: "/images/product/features-isometric.png",
+    width: 1600,
+    height: 1000,
+    alt: "Seamcor capabilities — data tables, departments, access control and custom forms",
+  },
+  complianceForm: {
+    src: "/images/product/compliance-form.png",
+    width: 1600,
+    height: 1000,
+    alt: "Seamcor compliance task form with checklist, photo capture and signature",
+  },
+  mobileTaskList: {
+    src: "/images/product/mobile-task-list.png",
+    width: 800,
+    height: 1600,
+    alt: "Seamcor mobile app showing assigned tasks list",
+  },
+  mobileCompliance: {
+    src: "/images/product/mobile-compliance.png",
+    width: 800,
+    height: 1600,
+    alt: "Seamcor mobile compliance checklist with pass/fail and submit",
+  },
+  tabletTask: {
+    src: "/images/product/tablet-task.png",
+    width: 1200,
+    height: 900,
+    alt: "Seamcor tablet field inspection checklist",
+  },
+  taskBuilder: {
+    src: "/images/product/task-builder.png",
+    width: 1600,
+    height: 1000,
+    alt: "Seamcor task builder with validation rules and workflow triggers",
+  },
+  departmentOverview: {
+    src: "/images/product/department-overview.png",
+    width: 1600,
+    height: 1000,
+    alt: "Seamcor department overview with task counts across the business",
+  },
+  analyticsReport: {
+    src: "/images/product/analytics-report.png",
+    width: 1600,
+    height: 1000,
+    alt: "Seamcor department analysis report with tasks, non-conformances and average times",
+  },
+} as const
+
 export const TAGLINE = "Grown Up Technology"
 
 export const COMPANY = {
@@ -65,7 +140,19 @@ export const COOKIE_CONSENT_KEY = "seamcor-cookie-consent"
 export const COOKIE_CONSENT_EVENT = "seamcor-cookie-consent-updated"
 
 export const TRADEMARK_NOTICE =
-  "Seamvex Data Systems Ltd is the exclusive distributor of Seamcor software and holds the exclusive right to use the Seamcor trademark."
+  "Seamcor is the trading name of Seamvex Data Systems Ltd (company number 17188046). Seamvex Data Systems Ltd is the exclusive distributor of Seamcor software and holds the exclusive right to use the Seamcor trademark."
+
+/** Mirrors customer-comms.md — continuity messaging for existing customers */
+export const CUSTOMER_REASSURANCE = {
+  headline: "Same software. Same people. Same contacts.",
+  intro:
+    "If you already use Seamcor, nothing changes in how you work day to day. The same platform, the same support team, and the same contact details you rely on.",
+  points: [
+    "Same Seamcor software — your platform and workflows stay as they are.",
+    "Same people looking after you — support, account management and implementation continue as before.",
+    "Same contact details — support@seamcor.com, accounts@seamcor.com, and +44 7392 991808.",
+  ],
+} as const
 
 export const TESTIMONIALS = [
   {

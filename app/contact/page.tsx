@@ -1,7 +1,9 @@
+import Link from "next/link"
+import Image from "next/image"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { CONTACT } from "@/lib/brand"
-import { Phone, Mail, MapPin, Clock, User, LifeBuoy, Receipt } from "lucide-react"
+import { COMPANY, CONTACT, CUSTOMER_REASSURANCE, PRODUCT_IMAGES } from "@/lib/brand"
+import { Phone, Mail, MapPin, Clock, User, LifeBuoy, Receipt, ArrowRight } from "lucide-react"
 
 export default function ContactPage() {
   return (
@@ -18,9 +20,49 @@ export default function ContactPage() {
               Get in touch — we&apos;ll keep it simple.
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground">
-              Have a question about Seamcor or want to see whether it fits your business? Reach out
-              and we&apos;ll get back to you.
+              Have a question about Seamcor, or want a direct conversation with Stephanie? Reply by
+              email or phone — no jargon, no hard sell.
             </p>
+          </div>
+        </section>
+
+        {/* Existing customers reassurance */}
+        <section className="border-b border-border bg-secondary/50">
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+            <div className="grid items-center gap-10 lg:grid-cols-2">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-accent">
+                  Already a Seamcor customer?
+                </p>
+                <h2 className="mt-3 text-balance text-2xl font-bold text-primary sm:text-3xl">
+                  {CUSTOMER_REASSURANCE.headline}
+                </h2>
+                <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
+                  {CUSTOMER_REASSURANCE.intro}
+                </p>
+                <ul className="mt-6 space-y-3 text-sm leading-relaxed text-muted-foreground">
+                  {CUSTOMER_REASSURANCE.points.map((point) => (
+                    <li key={point} className="flex gap-3">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+                  <strong className="font-semibold text-primary">Stephanie Meechan</strong>, Founder
+                  &amp; Director, is happy to speak to anyone who would like a direct conversation.
+                </p>
+              </div>
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <Image
+                  src={PRODUCT_IMAGES.taskBuilder.src}
+                  alt={PRODUCT_IMAGES.taskBuilder.alt}
+                  width={PRODUCT_IMAGES.taskBuilder.width}
+                  height={PRODUCT_IMAGES.taskBuilder.height}
+                  className="h-auto w-full"
+                />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -58,9 +100,22 @@ export default function ContactPage() {
                 <ContactCard
                   icon={MapPin}
                   label="Registered office"
-                  lines={["Church Court, Stourbridge Road,", "Halesowen, England, B63 3TT"]}
+                  lines={COMPANY.registeredOffice.lines}
                 />
               </div>
+            </div>
+            <div className="mt-10 rounded-2xl border border-border bg-card p-6 text-center sm:p-8">
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {COMPANY.legalName}, trading as {COMPANY.tradingName} (company number{" "}
+                {COMPANY.number}).
+              </p>
+              <Link
+                href="/about"
+                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-accent"
+              >
+                About Seamvex and Seamcor
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         </section>
