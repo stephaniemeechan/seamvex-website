@@ -106,6 +106,14 @@ export const PRODUCT_IMAGES = {
   },
 } as const
 
+export const BRAND_COLORS = {
+  navy: "#1B2A4E",
+  pink: "#E5007D",
+  slate: "#5C6B7A",
+  lightGrey: "#94A3B8",
+  offWhite: "#F8FAFC",
+} as const
+
 export const TAGLINE = "Grown Up Technology"
 
 export const COMPANY = {

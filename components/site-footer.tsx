@@ -100,13 +100,21 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-primary-foreground/10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-5 text-xs text-primary-foreground/60 sm:px-6">
-          <p>
-            &copy; {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved. {COMPANY.legalName} is
-            registered in {COMPANY.jurisdiction} (company number {COMPANY.number}), trading as {COMPANY.tradingName}.
-            Registered office: {COMPANY.registeredOffice.singleLine}.
-          </p>
-          <p>{TRADEMARK_NOTICE}</p>
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-5 text-xs text-primary-foreground/60 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="space-y-3">
+            <p>
+              &copy; {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved. {COMPANY.legalName} is
+              registered in {COMPANY.jurisdiction} (company number {COMPANY.number}), trading as {COMPANY.tradingName}.
+              Registered office: {COMPANY.registeredOffice.singleLine}.
+            </p>
+            <p>{TRADEMARK_NOTICE}</p>
+          </div>
+          <Link
+            href="/admin/login"
+            className="shrink-0 self-start rounded-md border border-primary-foreground/20 px-3 py-1.5 text-xs font-medium text-primary-foreground/80 transition-colors hover:border-accent hover:text-accent sm:self-center"
+          >
+            Admin
+          </Link>
         </div>
       </div>
     </footer>

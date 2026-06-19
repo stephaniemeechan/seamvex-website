@@ -17,7 +17,8 @@ RUN corepack enable && corepack prepare pnpm@9.15.4 --activate && \
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm run build
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate && \
+    pnpm run check-legal-bundle && pnpm run build
 
 FROM base AS runner
 ENV NODE_ENV=production
@@ -28,6 +29,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 --ingroup nodejs nextjs
 
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/deploy/legal ./deploy/legal
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 

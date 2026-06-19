@@ -2,19 +2,44 @@
 
 Region: **europe-west1** only · Service: **seamvex-website** · Port: **8080**
 
-## Option A — Cloud Build trigger (recommended; uses `cloudbuild.yaml`)
+## Prerequisites
 
-1. Cloud Build → Triggers → Create trigger
-2. Event: push to branch `main`
-3. Configuration: **Cloud Build configuration file** → `/cloudbuild.yaml`
-4. Region: **europe-west1**
-5. Push to GitHub → build runs → deploys with public auth + ingress
+1. Run `pnpm sync-legal-bundle` and commit `deploy/legal/` + `public/logos/` before deploy.
+2. Cloud SQL Postgres instance (app DB).
+3. GCS bucket `seamvex-contracts-eu` (europe-west1) for signed PDFs.
+4. Secret Manager: `SESSION_SECRET`, `GOOGLE_*`, `XERO_*`, `DOCUMENSO_*`, `TWILIO_*`, `DATABASE_URL`.
+5. Separate Documenso service — see [e-sign.md](../e-sign.md).
 
-`cloudbuild.yaml` already sets `--allow-unauthenticated` and `--ingress all`.
+## Environment (Cloud Run)
+
+```env
+DATABASE_URL=postgresql://...
+GCS_BUCKET=seamvex-contracts-eu
+SESSION_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=https://seamvex.com/api/auth/google/callback
+XERO_CLIENT_ID=
+XERO_CLIENT_SECRET=
+XERO_REDIRECT_URI=https://seamvex.com/api/xero/callback
+DOCUMENSO_API_URL=https://sign.seamvex.com/api/v2
+DOCUMENSO_API_KEY=
+DOCUMENSO_WEBHOOK_SECRET=
+NEXT_PUBLIC_APP_URL=https://seamvex.com
+ADMIN_EMAIL=s.meechan@seamvex.com
+```
+
+Mount secrets via Secret Manager references, not plain env in source control.
+
+## Option A — Cloud Build trigger (recommended)
+
+1. Cloud Build → Triggers → push to `main`
+2. Configuration: `/cloudbuild.yaml`
+3. Region: **europe-west1**
+
+Docker build runs `pnpm check-legal-bundle` before `next build`.
 
 ## Option B — Cloud Run Connect repository
-
-Cloud Run → Create service → Connect repository:
 
 | Setting | Value |
 |---------|-------|
@@ -22,18 +47,27 @@ Cloud Run → Create service → Connect repository:
 | Service name | **seamvex-website** |
 | Build | **Dockerfile** at `/Dockerfile` |
 | Port | **8080** |
-| Authentication | **Allow unauthenticated invocations** |
-| Ingress | **All** |
+| Authentication | Allow unauthenticated (app-level Google SSO) |
+| Ingress | All |
 
-This path does **not** read `cloudbuild.yaml`. Wizard settings above are required.
+## Dockerfile notes
+
+- Copies `deploy/legal/` into image for PDF generation
+- Copies `public/logos/` for UI and PDFs
+- `branding/` remains gitignored — never required at runtime
 
 ## After deploy
 
-1. Test `https://….run.app` — homepage loads (not 404/403)
-2. Cloud Run → Domain mappings → add `seamvex.com` and `www.seamvex.com`
-3. DNS: see [DNS-SETUP.md](./DNS-SETUP.md)
+1. Test `https://seamvex.com/admin/login`
+2. Domain mappings: `seamvex.com`, `seamcor.com` — see [DNS-SETUP.md](./DNS-SETUP.md)
+3. Cloud Scheduler: optional daily `POST /api/xero/sync` (admin session or service account — configure as needed)
+
+## Documenso second service
+
+Deploy `seamvex-documenso` to `sign.seamvex.com` with its own Cloud SQL DB. See [e-sign.md](../e-sign.md).
 
 ## Do not
 
-- Create a second service in **europe-west2**
-- Use Buildpacks (repo uses Dockerfile + Next.js standalone)
+- Deploy without `deploy/legal/` (build fails `check-legal-bundle`)
+- Use ephemeral SQLite on Cloud Run for CRM data
+- Create duplicate services in other regions without intent

@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: seamvex
+      POSTGRES_PASSWORD: seamvex
+      POSTGRES_DB: seamvex_crm
+    ports:
+      - "5432:5432"
+    volumes:
+      - seamvex_pg:/var/lib/postgresql/data
+      - ./docker/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
+
+  documenso:
+    image: documenso/documenso:latest
+    profiles:
+      - documenso
+    ports:
+      - "3001:3000"
+    environment:
+      NEXTAUTH_SECRET: local-documenso-secret-change-me
+      NEXT_PRIVATE_DATABASE_URL: postgresql://seamvex:seamvex@postgres:5432/documenso
+      NEXT_PRIVATE_DIRECT_DATABASE_URL: postgresql://seamvex:seamvex@postgres:5432/documenso
+      NEXT_PUBLIC_WEBAPP_URL: http://localhost:3001
+    depends_on:
+      - postgres
+
+volumes:
+  seamvex_pg:

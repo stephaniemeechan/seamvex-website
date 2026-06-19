@@ -133,7 +133,7 @@ function ContactCard({
 }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
-  lines: string[]
+  lines: readonly string[]
   href?: string
 }) {
   const content = (

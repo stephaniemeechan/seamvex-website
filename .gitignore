@@ -19,8 +19,14 @@ public/seamcor-logo.png
 # Common ignores
 node_modules
 .next/
+data/
 .DS_Store
 *.log
+
+# Xero customer exports (PII — local only)
+xero-customers-export.json
+xero-customers-export.csv
+xero-customers-export.md
 
 # IDE / OS
 Thumbs.db
