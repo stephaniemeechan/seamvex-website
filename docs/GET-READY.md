@@ -134,6 +134,7 @@ Manual E2E still required: Google SSO, agreement send/sign, Gmail, Xero DRAFT, T
 ## Current session log
 
 ```
-Last completed: B7 — pushed 26a2c8f (docs + Xero import/sync + cloud-run-env.template)
-Next step: B8 — confirm Cloud Build green; then C1–C16 in Cloud Run console (use deploy/cloud-run-env.template)
+Last completed: df55a72 — go-live smoke test script; pnpm go-live-smoke PASS (5/5)
+Next step: B8 — confirm Cloud Build green; C1–C16 using deploy/cloud-run-env.template
+Automated smoke 2026-06-20: seamvex.com + seamcor.com home 200; admin login 200; Twilio verify 200; /sign 404; sign.seamvex.com NOT REACHABLE (Documenso not deployed)
 ```
