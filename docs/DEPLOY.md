@@ -17,6 +17,10 @@ Live service with all four domain mappings (`seamvex.com`, `www.seamvex.com`, `s
 4. Secret Manager: `SESSION_SECRET`, `GOOGLE_*`, `XERO_*`, `DOCUMENSO_*`, `TWILIO_*`, `DATABASE_URL`.
 5. Separate Documenso service — see [e-sign.md](../e-sign.md).
 
+Copy [`deploy/cloud-run-env.template`](../deploy/cloud-run-env.template) when filling Cloud Run variables (do not commit real secrets).
+
+After deploy, run `pnpm go-live-smoke` against production to verify routes and webhooks.
+
 ## GCS IAM
 
 The Cloud Run **service account** (default compute SA or the one attached to `seamvex-website-2`) needs **`roles/storage.objectUser`** on bucket `seamvex-contracts-eu` so the app can upload and download signed PDFs (`saveOrderPdf` / `readOrderPdf`).

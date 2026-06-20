@@ -41,7 +41,7 @@ Do **not** commit `.env.local`. It stays on your machine only.
 | B5 | Confirm staged: CRM code (`app/admin/`, `app/api/`, `lib/`, `middleware.ts`, etc.) | [x] | |
 | B6 | Commit | [x] | `d1531a5` — deploy target, signed-pdf GCS, prod env vars |
 | B7 | Push to `main` | [x] | Pushed to `main` |
-| B8 | Cloud Build trigger runs and finishes green | [ ] | Confirm in Cloud Build console after push |
+| B8 | Cloud Build trigger runs and finishes green | [ ] | Confirm after `26a2c8f` push — targets `seamvex-website-2` |
 
 **Code fixes in `d1531a5` (done in repo):**
 
@@ -113,13 +113,27 @@ Required by code in production (`lib/env.ts` `PROD_REQUIRED`). **None of these g
 |---|------|--------|-------|
 | E1 | Section B in `docs/XERO-SETUP.md` — connect Xero, sync contacts, test sign → DRAFT invoice | [ ] | |
 | E2 | Connect Gmail per admin user in Settings | [ ] | Requires D2 redirect URIs |
-| E3 | `pnpm reset-crm-data --import-xero` when ready for greenfield | [ ] | |
+| E3 | `pnpm reset-crm-data --import-xero` when ready for greenfield | [ ] | Reads `organisations[].agreementSnapshots` from export |
+
+---
+
+## Smoke tests (automated)
+
+Run against production:
+
+```bash
+pnpm go-live-smoke
+```
+
+Checks: home 200, admin login 200, Twilio verify file, legacy `/sign` 404, Documenso webhook rejects unsigned POST.
+
+Manual E2E still required: Google SSO, agreement send/sign, Gmail, Xero DRAFT, Twilio voice.
 
 ---
 
 ## Current session log
 
 ```
-Last completed: B7 — pushed d1531a5 to main (cloudbuild → seamvex-website-2, signed-pdf GCS, prod env)
-Next step: B8 — confirm Cloud Build green; then C1–C16 in Cloud Run console
+Last completed: B7 — pushed 26a2c8f (docs + Xero import/sync + cloud-run-env.template)
+Next step: B8 — confirm Cloud Build green; then C1–C16 in Cloud Run console (use deploy/cloud-run-env.template)
 ```
