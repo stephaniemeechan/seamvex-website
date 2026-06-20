@@ -49,7 +49,9 @@ Implementation: [`lib/env.ts`](lib/env.ts) — `legacySignAllowed()`, `passwordL
 | Create/send/void agreements | Yes | **No** (API + UI gated) |
 | Manage tickets | Yes | Yes |
 | Own tasks only | All tasks | Own assignee only |
-| Settings (Xero, users, resources edit) | Yes | **No** (redirect) |
+| Settings (own phone, inbound calls, Xero/Gmail connect) | Yes | Yes |
+| Settings (voice routing, Xero sync, users, resources edit) | Yes | No (sections hidden) |
+| Voice (outbound click-to-call; inbound simulring) | Yes | Yes (set phone + **Receive inbound calls**) |
 | Resources page (Drive links) | Yes | **No** (admin only) |
 | Contact Drive attachments | Add/remove | View only |
 
@@ -57,7 +59,9 @@ Implementation: [`lib/env.ts`](lib/env.ts) — `legacySignAllowed()`, `passwordL
 
 **Email:** Gmail API as action user `"Name (Seamcor)" <user@seamvex.com>` on agreement send; thread linked to ticket.
 
-**Not in v1:** cashflow, overdue reporting, invoice paid polling.
+**Twilio (voice only — no SMS):** Outbound from contact/ticket detail (rings your phone, then customer). Inbound to company line simulrings CRM users with **Receive inbound calls**; after-hours routes to on-call mobile. Hours, greetings, ring group, and no-answer behaviour configured in **Admin → Settings** (`voice_config` in DB, not env).
+
+**Not in v1:** SMS, cashflow, overdue reporting, invoice paid polling.
 
 ---
 
@@ -75,7 +79,7 @@ Implementation: [`lib/env.ts`](lib/env.ts) — `legacySignAllowed()`, `passwordL
 | Legacy sign: non-production only, requires `status=sent` | `app/api/sign/[token]/*` |
 | `signToken` stripped from order API in production | `sanitizeOrderForApi` / `sanitizeOrdersForApi` |
 | Documenso webhook secret (timing-safe) | `app/api/documenso/webhook/route.ts` |
-| Twilio webhook signature | `app/api/twilio/webhook/route.ts` |
+| Twilio voice webhooks (public routes, signature verified) | `middleware.ts` + `app/api/twilio/voice/*` |
 
 ---
 
@@ -90,10 +94,12 @@ DATABASE_URL
 GCS_BUCKET
 DOCUMENSO_API_URL / DOCUMENSO_API_KEY / DOCUMENSO_WEBHOOK_SECRET
 XERO_CLIENT_ID / XERO_CLIENT_SECRET / XERO_REDIRECT_URI
-TWILIO_* (if using SMS/voice)
+TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_PHONE_NUMBER
 NEXT_PUBLIC_APP_URL=https://seamvex.com
 ADMIN_EMAIL=s.meechan@seamvex.com
 ```
+
+Voice routing (business hours, greetings, ring group, after-hours mobile) is stored in DB (`voice_config`), configured at `/admin/settings` — not env vars.
 
 ---
 
@@ -129,6 +135,7 @@ Brand accent on PDFs: `#E5007D` ([`lib/brand.ts`](lib/brand.ts) `BRAND_COLORS.pi
 | [`docs/CRM.md`](docs/CRM.md) | Workflows, roles, integrations |
 | [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md) | **Manual** — Section B after OAuth |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | **Manual** — Section C Cloud Run |
+| [`docs/GET-READY.md`](docs/GET-READY.md) | **Manual** — ordered go-live checklist (local, deploy, Twilio) |
 | [`docs/PROPOSALS.md`](docs/PROPOSALS.md) | Agreement PDF workflow |
 | [`e-sign.md`](e-sign.md) | Documenso CE deploy |
 
@@ -147,16 +154,18 @@ App does **not** send from `@seamcor.com` in v1.
 
 ## Manual steps you still must do
 
-1. **Section B** — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md): connect Xero, map Items, verify test sign → DRAFT invoice
-2. **Section C** — [`docs/DEPLOY.md`](docs/DEPLOY.md): Cloud SQL, GCS, Secret Manager, deploy `seamvex-website` + `seamvex-documenso` on `sign.seamvex.com`
-3. **Commit** `deploy/legal/` and `public/logos/` after `pnpm sync-legal-bundle`
-4. **Greenfield** (when ready): `pnpm reset-crm-data --import-xero`
+1. **Go-live checklist** — [`docs/GET-READY.md`](docs/GET-READY.md): work through env vars, deploy, and Twilio in order
+2. **Section B** — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md): connect Xero, map Items, verify test sign → DRAFT invoice
+3. **Section C** — [`docs/DEPLOY.md`](docs/DEPLOY.md): Cloud SQL, GCS, Secret Manager, deploy `seamvex-website` + `seamvex-documenso` on `sign.seamvex.com`
+4. **Twilio Console** — company number **A call comes in** webhook: `POST https://<your-domain>/api/twilio/voice/inbound` (then configure voice routing at `/admin/settings`)
+5. **Commit** `deploy/legal/` and `public/logos/` after `pnpm sync-legal-bundle`
+6. **Greenfield** (when ready): `pnpm reset-crm-data --import-xero`
 
 ---
 
 ## Known limitations (facts)
 
 - **Edge middleware** imports `crypto` via `lib/auth/security.ts` — build warns; works today but may need Edge-safe rate limit later.
-- **Standard users** cannot access Settings/Resources pages (admin only); Gmail connect for ticket email is admin-focused on agreement send.
+- **Standard users** cannot access the Resources page (admin only). Settings is open to all users (own phone + inbound toggle); voice routing, user phones, and resource links are admin-only sections.
 - **Documenso customer email** disabled via `distributionMethod: "NONE"` — verify once with real Documenso CE instance.
 - **Contact `live` status** — rule includes `live` rollout status but app only sets `signed` today; inactive/active still works via `signed`.
