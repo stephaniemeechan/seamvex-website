@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { requireSession } from "@/lib/auth/rbac"
-import { loadCustomerComms, fillCommsTemplate } from "@/lib/legal/comms"
+import { loadCustomerComms, fillCommsTemplate, buildAgreementSendEmail } from "@/lib/legal/comms"
 import { getOrder } from "@/lib/proposals/orders"
 
 export const runtime = "nodejs"
@@ -28,12 +28,21 @@ export async function GET(request: Request) {
       signingLink,
     }
 
+    const coverFilled = fillCommsTemplate(comms.coverNoteAgreement, vars)
+    const subject = fillCommsTemplate(
+      comms.emailSubjects[0] ?? "Seamcor — updated agreement",
+      vars,
+    )
+
     return NextResponse.json({
       ...comms,
-      coverNoteAgreement: fillCommsTemplate(comms.coverNoteAgreement, vars),
+      coverNoteAgreement: coverFilled,
       emailBody: fillCommsTemplate(comms.emailBody, vars),
       followUpBody: fillCommsTemplate(comms.followUpBody, vars),
-      emailSubject: comms.emailSubjects[0] ?? "Seamcor — updated agreement",
+      emailSubject: subject,
+      sendPreviewBody: signingLink
+        ? buildAgreementSendEmail(coverFilled, signingLink)
+        : buildAgreementSendEmail(coverFilled, "[signing link on send]"),
     })
   } catch (e) {
     return NextResponse.json(

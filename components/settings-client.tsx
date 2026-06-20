@@ -44,10 +44,16 @@ export function SettingsClient({
   isAdmin,
   xeroReady,
   companyPhone,
+  gmailConnected,
+  gmailStatus,
+  xeroStatus,
 }: {
   isAdmin: boolean
   xeroReady: boolean
   companyPhone: string | null
+  gmailConnected: boolean
+  gmailStatus?: string
+  xeroStatus?: string
 }) {
   const [resources, setResources] = useState<ResourceLink[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -299,6 +305,16 @@ export function SettingsClient({
 
       <section className="rounded-xl border border-border p-4 space-y-3">
         <p className="text-sm font-medium text-primary">Xero</p>
+        {xeroStatus === "connected" && (
+          <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">
+            Xero connected successfully.
+          </p>
+        )}
+        {xeroStatus === "error" && (
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+            Xero connection failed. Check credentials and redirect URI.
+          </p>
+        )}
         {!xeroReady ? (
           <p className="text-sm text-muted-foreground">Add Xero credentials to .env.local</p>
         ) : (
@@ -328,11 +344,26 @@ export function SettingsClient({
         <p className="text-xs text-muted-foreground">
           Connect to send agreement emails from your @seamvex.com address.
         </p>
+        {gmailStatus === "connected" && (
+          <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">
+            Gmail connected successfully.
+          </p>
+        )}
+        {gmailStatus === "error" && (
+          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
+            Gmail connection failed. Check Google OAuth redirect URIs and try again.
+          </p>
+        )}
+        {gmailConnected ? (
+          <p className="text-sm text-green-800">Connected — agreement sends use your mailbox.</p>
+        ) : (
+          <p className="text-sm text-amber-800">Not connected — Send for signature will not email the customer.</p>
+        )}
         <a
           href="/api/gmail/connect"
           className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary"
         >
-          Connect Gmail
+          {gmailConnected ? "Reconnect Gmail" : "Connect Gmail"}
         </a>
       </section>
 

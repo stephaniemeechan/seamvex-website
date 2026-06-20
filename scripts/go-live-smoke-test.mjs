@@ -10,6 +10,7 @@ const checks = [
   { name: "Twilio domain verify", url: `${BASE}/531804029afb8ab9fd1af341c1cac943.html`, expectStatus: [200], bodyIncludes: "twilio-domain-verification" },
   { name: "Legacy sign blocked", url: `${BASE}/sign/test-token`, expectStatus: [404] },
   { name: "Documenso webhook rejects unsigned", url: `${BASE}/api/documenso/webhook`, method: "POST", expectStatus: [401, 503], body: "{}" },
+  { name: "Google OAuth configured", url: `${BASE}/api/auth/google`, expectStatus: [302, 303, 307], redirect: "manual" },
 ]
 
 async function run() {
@@ -20,7 +21,7 @@ async function run() {
         method: c.method ?? "GET",
         headers: c.body ? { "Content-Type": "application/json" } : undefined,
         body: c.body,
-        redirect: "follow",
+        redirect: c.redirect ?? "follow",
       })
       const text = await res.text()
       const statusOk = c.expectStatus.includes(res.status)

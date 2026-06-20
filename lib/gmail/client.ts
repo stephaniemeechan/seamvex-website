@@ -32,6 +32,15 @@ export async function saveGmailRefreshToken(userId: string, refreshToken: string
   )
 }
 
+export async function hasGmailRefreshToken(userId: string): Promise<boolean> {
+  await ensureDb()
+  const row = await queryOne<{ user_id: string }>(
+    "SELECT user_id FROM user_gmail_tokens WHERE user_id = ?",
+    [userId],
+  )
+  return Boolean(row)
+}
+
 async function gmailClientForUser(userId: string): Promise<OAuth2Client> {
   await ensureDb()
   const tokenRow = await queryOne<{ refresh_token_enc: string }>(

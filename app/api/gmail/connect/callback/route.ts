@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const userId = request.headers.get("cookie")?.match(/gmail_oauth_user=([^;]+)/)?.[1]
 
   if (!code || !state || state !== cookieState || !userId) {
-    return NextResponse.redirect(new URL("/admin?gmail=error", url.origin))
+    return NextResponse.redirect(new URL("/admin/settings?gmail=error", url.origin))
   }
 
   const redirectUri =
@@ -26,11 +26,11 @@ export async function GET(request: Request) {
     if (!tokens.refresh_token) throw new Error("No refresh token returned")
     await saveGmailRefreshToken(userId, tokens.refresh_token)
 
-    const res = NextResponse.redirect(new URL("/admin?gmail=connected", url.origin))
+    const res = NextResponse.redirect(new URL("/admin/settings?gmail=connected", url.origin))
     res.cookies.delete("gmail_oauth_state")
     res.cookies.delete("gmail_oauth_user")
     return res
   } catch {
-    return NextResponse.redirect(new URL("/admin?gmail=error", url.origin))
+    return NextResponse.redirect(new URL("/admin/settings?gmail=error", url.origin))
   }
 }

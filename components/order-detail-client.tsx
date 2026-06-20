@@ -37,6 +37,7 @@ export function OrderDetailClient({ id, canManageContracts = true }: { id: strin
   const [signUrl, setSignUrl] = useState("")
   const [coverNote, setCoverNote] = useState("")
   const [emailBody, setEmailBody] = useState("")
+  const [sendPreviewBody, setSendPreviewBody] = useState("")
   const [emailSubject, setEmailSubject] = useState("")
   const [copied, setCopied] = useState("")
   const [actionError, setActionError] = useState("")
@@ -62,10 +63,21 @@ export function OrderDetailClient({ id, canManageContracts = true }: { id: strin
       .then((d) => {
         setCoverNote(d.coverNoteAgreement ?? "")
         setEmailBody(d.emailBody ?? "")
+        setSendPreviewBody(d.sendPreviewBody ?? d.coverNoteAgreement ?? "")
         setEmailSubject(d.emailSubject ?? "Seamcor — updated agreement")
       })
       .catch(() => setCoverNote("Please sign the attached Seamcor software agreement."))
   }, [id])
+
+  useEffect(() => {
+    if (!signUrl) return
+    fetch(`/api/comms?orderId=${id}&signingLink=${encodeURIComponent(signUrl)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.sendPreviewBody) setSendPreviewBody(d.sendPreviewBody)
+      })
+      .catch(() => {})
+  }, [id, signUrl])
 
   async function generateContract() {
     setActionError("")
@@ -108,7 +120,7 @@ export function OrderDetailClient({ id, canManageContracts = true }: { id: strin
   const calcLines = order.lines?.calculated?.lines?.filter((l) => l.includeInPdf) ?? []
   const currency = order.currency as "GBP" | "ZAR" | "EUR"
   const mailto = order.customer.contactEmail
-    ? `mailto:${order.customer.contactEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(`${emailBody}\n\nSign here: ${signUrl}`)}`
+    ? `mailto:${order.customer.contactEmail}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(sendPreviewBody)}`
     : ""
   const isProposal = order.status === "proposal"
   const isContract = order.status === "contract"
@@ -281,12 +293,16 @@ export function OrderDetailClient({ id, canManageContracts = true }: { id: strin
 
       {(isContract || isSent) && (
         <div className="rounded-xl border border-border p-4 space-y-3">
-          <p className="text-sm font-medium text-primary">Email to customer</p>
-          <p className="text-xs text-muted-foreground">Subject: {emailSubject}</p>
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{emailBody}</p>
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground border-t border-border pt-3">
-            {coverNote}
+          <p className="text-sm font-medium text-primary">Gmail on Send</p>
+          <p className="text-xs text-muted-foreground">
+            This is the exact plain-text email sent when you click Send for signature (requires Gmail connected in Settings).
           </p>
+          <p className="text-xs text-muted-foreground">Subject: {emailSubject}</p>
+          <p className="whitespace-pre-wrap text-sm">{sendPreviewBody}</p>
+          <details className="text-sm text-muted-foreground">
+            <summary className="cursor-pointer text-xs font-medium">Reference letter (not auto-sent)</summary>
+            <p className="mt-2 whitespace-pre-wrap">{emailBody}</p>
+          </details>
           <div className="flex flex-wrap gap-2">
             {mailto && (
               <a
@@ -298,10 +314,10 @@ export function OrderDetailClient({ id, canManageContracts = true }: { id: strin
             )}
             <button
               type="button"
-              onClick={() => copyText("email", `${emailSubject}\n\n${emailBody}\n\n${coverNote}\n\n${signUrl}`)}
+              onClick={() => copyText("email", `${emailSubject}\n\n${sendPreviewBody}`)}
               className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-secondary"
             >
-              {copied === "email" ? "Copied!" : "Copy email text"}
+              {copied === "email" ? "Copied!" : "Copy send text"}
             </button>
           </div>
         </div>

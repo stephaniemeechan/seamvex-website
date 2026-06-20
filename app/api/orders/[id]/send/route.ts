@@ -3,7 +3,7 @@ import { requireAdminMutation, sanitizeOrderForApi } from "@/lib/auth/api-guards
 import { createAgreementSendTicket, updateTicket } from "@/lib/crm/tickets"
 import { createDocumentFromPdf, documensoConfig } from "@/lib/documenso/client"
 import { appBaseUrl, documensoRequired, legacySignAllowed } from "@/lib/env"
-import { loadCustomerComms, fillCommsTemplate } from "@/lib/legal/comms"
+import { loadCustomerComms, fillCommsTemplate, buildAgreementSendEmail } from "@/lib/legal/comms"
 import { sendEmail, logSentEmail } from "@/lib/gmail/client"
 import {
   getOrder,
@@ -95,11 +95,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         accountsEmail: existing.customer.accountsEmail ?? "",
         signingLink: signUrl,
       }
-      const body =
-        fillCommsTemplate(comms.coverNoteAgreement, vars) +
-        "\n\nSign here: " +
-        signUrl +
-        "\n\nSeamvex Data Systems Ltd, trading as Seamcor"
+      const body = buildAgreementSendEmail(
+        fillCommsTemplate(comms.coverNoteAgreement, vars),
+        signUrl,
+      )
       const subject = fillCommsTemplate(
         comms.emailSubjects[0] ?? "Seamcor — updated agreement",
         vars,

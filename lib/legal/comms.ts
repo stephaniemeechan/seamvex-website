@@ -96,3 +96,13 @@ export function fillCommsTemplate(template: string, vars: Record<string, string>
   }
   return out
 }
+
+/** Body sent via Gmail on agreement send — must match app/api/orders/[id]/send/route.ts */
+export function buildAgreementSendEmail(coverNote: string, signUrl: string): string {
+  return (
+    coverNote +
+    "\n\nSign here: " +
+    signUrl +
+    "\n\nSeamvex Data Systems Ltd, trading as Seamcor"
+  )
+}

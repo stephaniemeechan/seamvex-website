@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic"
 export default function AdminDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ xero?: string }>
+  searchParams: Promise<{ xero?: string; gmail?: string }>
 }) {
   const params = Promise.resolve(searchParams)
   return <DashboardInner searchParams={params} />
@@ -19,7 +19,7 @@ export default function AdminDashboardPage({
 async function DashboardInner({
   searchParams,
 }: {
-  searchParams: Promise<{ xero?: string }>
+  searchParams: Promise<{ xero?: string; gmail?: string }>
 }) {
   const sp = await searchParams
   const session = await getSession()
@@ -72,6 +72,16 @@ async function DashboardInner({
       {sp.xero === "error" && (
         <p className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-900">
           Xero connection failed. Check credentials and redirect URI.
+        </p>
+      )}
+      {sp.gmail === "connected" && (
+        <p className="rounded-md border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-900">
+          Gmail connected — see Settings to confirm status.
+        </p>
+      )}
+      {sp.gmail === "error" && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-900">
+          Gmail connection failed. Check Google OAuth redirect URIs in Settings.
         </p>
       )}
 
