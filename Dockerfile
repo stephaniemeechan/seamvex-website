@@ -4,7 +4,8 @@
 # Builds Next.js standalone; branding/ is excluded via .dockerignore
 
 FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat
+# better-sqlite3 native module needs a compiler at install time
+RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
