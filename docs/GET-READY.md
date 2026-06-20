@@ -134,7 +134,7 @@ Manual E2E still required: Google SSO, agreement send/sign, Gmail, Xero DRAFT, T
 ## Current session log
 
 ```
-Last completed: df55a72 — go-live smoke test script; pnpm go-live-smoke PASS (5/5)
-Next step: B8 — confirm Cloud Build green; C1–C16 using deploy/cloud-run-env.template
-Automated smoke 2026-06-20: seamvex.com + seamcor.com home 200; admin login 200; Twilio verify 200; /sign 404; sign.seamvex.com NOT REACHABLE (Documenso not deployed)
+Last completed: caea067 — Gmail connection status, send preview fix, smoke test Google OAuth check
+Next step: B8 Cloud Build green; C2–C4 Google OAuth on seamvex-website-2 (smoke currently 503 = not configured)
+Smoke 2026-06-20: 5/6 pass — Google OAuth returns 503 until GET-READY C2–C4 set on Cloud Run
 ```
