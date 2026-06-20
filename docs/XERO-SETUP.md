@@ -4,6 +4,8 @@ Complete after app code is running locally and Google SSO works in production (`
 
 **Manual** — not automated by deploy. Run after Cloud Run env (GET-READY §C) and Xero redirect URI (GET-READY §D3) are set.
 
+**Blocked today (2026-06-20):** Google OAuth returns 503 on production — complete GET-READY C2–C4 and D1 before Xero connect will work in prod.
+
 ## 1. Connect OAuth
 
 1. Open **Admin → Settings → Connect Xero**

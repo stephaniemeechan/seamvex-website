@@ -41,9 +41,9 @@ Source plans: chat refinements (no cashflow, GDrive links, Twilio v1, retire leg
 | 33 | No cashflow/overdue reporting | MUST | Implemented |
 | 34 | Xero DRAFT invoice on Documenso sign | MUST | Implemented |
 | 35 | Middleware hardening | BLOCKER | Implemented |
-| 36 | Documentation accurate | MUST | Audited 2026-06-20 — README, DEPLOY, GET-READY, CRM, e-sign, PROPOSALS, XERO-SETUP |
-| 37 | Section B — Xero org setup (manual) | MUST | `docs/XERO-SETUP.md` — you run this |
-| 38 | Section C — Cloud Run deploy (manual) | BLOCKER | `docs/DEPLOY.md` — you run this |
-| 39 | Full pre-production audit | BLOCKER | Complete 2026-06-20 — code + docs vs GCP reality; manual C/D/E in GET-READY remain |
+| 36 | Documentation accurate | MUST | Audited 2026-06-20 — README, DEPLOY, GET-READY, CRM, e-sign, PROPOSALS, XERO-SETUP, DNS-SETUP |
+| 37 | Section B — Xero org setup (manual) | MUST | `docs/XERO-SETUP.md` — blocked until Cloud Run env + Google SSO |
+| 38 | Section C — Cloud Run deploy (manual) | BLOCKER | `docs/DEPLOY.md` — service live; **env vars not set** (GET-READY §C) |
+| 39 | Full pre-production audit | BLOCKER | Code complete on `4946376`; manual C/D/E in GET-READY remain |
 
 See dependency order and acceptance criteria in sub-agent audit output (2026-06-19).

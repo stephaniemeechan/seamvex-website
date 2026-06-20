@@ -4,7 +4,17 @@ Region: **europe-west1** only · Service: **seamvex-website-2** · Port: **8080*
 
 Live service with all four domain mappings (`seamvex.com`, `www.seamvex.com`, `seamcor.com`, `www.seamcor.com`). `cloudbuild.yaml` deploys to **seamvex-website-2**.
 
-**Orphan services to delete** after confirming the new service is healthy:
+## Current production status (2026-06-20)
+
+| Check | Status |
+|-------|--------|
+| Service `seamvex-website-2` public + ingress all | **Live** (GCP confirmed) |
+| HTTPS on mapped domains | **200** on `seamvex.com`, `www.seamcor.com` |
+| `pnpm go-live-smoke` | **5/6 pass** — Google OAuth **503** (env not set); Documenso webhook **503** (secret not set) |
+| `sign.seamvex.com` (Documenso) | **Not deployed** — separate manual service |
+| Cloud Run env vars | **Not configured** — see [GET-READY.md](./GET-READY.md) §C |
+
+**Orphan services to delete** after confirming Cloud Build deploy is green (GET-READY B8):
 
 - `seamvex-website` (europe-west1, auth required)
 - `seamvex-website` (europe-west2)
@@ -19,7 +29,7 @@ Live service with all four domain mappings (`seamvex.com`, `www.seamvex.com`, `s
 
 Copy [`deploy/cloud-run-env.template`](../deploy/cloud-run-env.template) when filling Cloud Run variables (do not commit real secrets).
 
-After deploy, run `pnpm go-live-smoke` against production to verify routes and webhooks.
+After deploy, run `pnpm go-live-smoke` against production to verify routes and webhooks. Expect **503** on Google OAuth and Documenso webhook until env vars in §C of [GET-READY.md](./GET-READY.md) are set.
 
 ## GCS IAM
 

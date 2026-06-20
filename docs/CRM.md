@@ -11,6 +11,8 @@ Internal CRM and agreement admin for Seamvex Data Systems Ltd (trading as Seamco
 
 Sign in with Google Workspace **`@seamvex.com`** only. First user matching `ADMIN_EMAIL` becomes admin.
 
+Production Google SSO requires Cloud Run env (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`) — see [GET-READY.md](./GET-READY.md) §C.
+
 ## Workflows
 
 ### Contacts
@@ -92,6 +94,8 @@ Greenfield reset:
 pnpm reset-crm-data
 pnpm reset-crm-data --import-xero   # after export-xero-customers
 ```
+
+Production smoke (automated): `pnpm go-live-smoke` — see [GET-READY.md](./GET-READY.md).
 
 ## Xero org setup (after OAuth)
 

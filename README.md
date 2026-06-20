@@ -87,6 +87,8 @@ Implementation: [`lib/env.ts`](lib/env.ts) — `legacySignAllowed()`, `passwordL
 
 Cloud Run service: **`seamvex-website-2`** (europe-west1). See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
+**Production today (2026-06-20):** Service and domain mappings are live; Cloud Run env vars are **not set**. `pnpm go-live-smoke` passes 5/6 — Google OAuth returns **503** until `GOOGLE_*` are configured. Documenso at `sign.seamvex.com` is **not deployed**.
+
 **Required** — `lib/env.ts` `PROD_REQUIRED` (throws on first DB access if missing):
 
 ```
@@ -135,6 +137,7 @@ Brand accent on PDFs: `#E5007D` ([`lib/brand.ts`](lib/brand.ts) `BRAND_COLORS.pi
 | `pnpm reset-crm-data` | Wipe agreements/tickets/contacts |
 | `pnpm reset-crm-data --import-xero` | Wipe + import `xero-customers-export.json` |
 | `pnpm export-xero-customers` | Export Xero contacts (PII, gitignored) |
+| `pnpm go-live-smoke` | HTTP smoke tests against production (`https://seamvex.com`) |
 
 ---
 
@@ -146,9 +149,11 @@ Brand accent on PDFs: `#E5007D` ([`lib/brand.ts`](lib/brand.ts) `BRAND_COLORS.pi
 | [`docs/CRM.md`](docs/CRM.md) | Workflows, roles, integrations |
 | [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md) | **Manual** — Section B after OAuth |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | **Manual** — Section C Cloud Run |
+| [`outstanding.md`](outstanding.md) | **Start here** — what's left for go-live (manual GCP only) |
 | [`docs/GET-READY.md`](docs/GET-READY.md) | **Manual** — ordered go-live checklist (local, deploy, Twilio) |
 | [`docs/PROPOSALS.md`](docs/PROPOSALS.md) | Agreement PDF workflow |
-| [`e-sign.md`](e-sign.md) | Documenso CE deploy |
+| [`e-sign.md`](e-sign.md) | Documenso CE deploy (not live on `sign.seamvex.com` yet) |
+| [`docs/DNS-SETUP.md`](docs/DNS-SETUP.md) | Domain mappings for seamvex.com + seamcor.com |
 
 ---
 
@@ -165,20 +170,24 @@ App does **not** send from `@seamcor.com` in v1.
 
 ## Manual steps you still must do
 
-1. **Go-live checklist** — [`docs/GET-READY.md`](docs/GET-READY.md): sections C–E (Cloud Run env, external consoles, post-live)
-2. **Cloud Run env** — [`docs/DEPLOY.md`](docs/DEPLOY.md): set vars on **`seamvex-website-2`**; GCS IAM for signed PDFs
-3. **Documenso CE** — [`e-sign.md`](e-sign.md): deploy `seamvex-documenso` on `sign.seamvex.com`; webhook header `x-documenso-secret`
-4. **Google OAuth** — SSO redirect + Gmail redirect `https://seamvex.com/api/gmail/connect/callback`
-5. **Xero** — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md): connect org, sync contacts, test sign → DRAFT invoice
-6. **Twilio Console** — voice only (no SMS): **A call comes in** → `POST https://seamvex.com/api/twilio/voice/inbound`; then voice routing at `/admin/settings`
-7. **Gmail** — each admin connects in Settings (per-user OAuth)
-8. **Greenfield** (when ready): `pnpm reset-crm-data --import-xero`
-9. **Cleanup** — delete orphan Cloud Run services `seamvex-website` (europe-west1 + europe-west2) after deploy verified
+**Priority order** (see [`docs/GET-READY.md`](docs/GET-READY.md) for full checklist):
+
+1. **B8** — Confirm Cloud Build trigger green on latest `main` push
+2. **Cloud Run env** — [`docs/DEPLOY.md`](docs/DEPLOY.md): set all `PROD_REQUIRED` vars on **`seamvex-website-2`** (copy from [`deploy/cloud-run-env.template`](deploy/cloud-run-env.template))
+3. **Google OAuth** — SSO redirect + Gmail redirect in Google Cloud Console
+4. **Documenso CE** — [`e-sign.md`](e-sign.md): deploy on `sign.seamvex.com` (currently **not live**)
+5. **Cloud SQL + GCS IAM** — `DATABASE_URL`, bucket `seamvex-contracts-eu`, Run SA `storage.objectUser`
+6. **Xero** — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md): connect org, sync, test sign → DRAFT invoice
+7. **Twilio Console** — voice webhook → `POST https://seamvex.com/api/twilio/voice/inbound`; routing in `/admin/settings`
+8. **Gmail** — each admin connects in Settings (per-user OAuth)
+9. **Greenfield** (when ready): `pnpm reset-crm-data --import-xero`
+10. **Cleanup** — delete orphan Cloud Run services `seamvex-website` (europe-west1 + europe-west2)
 
 ---
 
 ## Known limitations (facts)
 
+- **Production env not set (2026-06-20)** — `pnpm go-live-smoke` fails Google OAuth check (503). Documenso webhook also 503 until `DOCUMENSO_WEBHOOK_SECRET` is set. Agreement send/sign blocked until Documenso service is deployed.
 - **Edge middleware** imports `crypto` via `lib/auth/security.ts` — build warns; works today but may need Edge-safe rate limit later.
 - **Standard users** cannot access the Resources page (admin only). Settings is open to all users (own phone + inbound toggle); voice routing, user phones, and resource links are admin-only sections.
 - **Documenso customer email** disabled via `distributionMethod: "NONE"` — verify once with real Documenso CE instance.

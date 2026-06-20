@@ -16,7 +16,7 @@ PDF layout: `lib/proposals/pdf-theme.ts`, `pricing-tables.tsx`, `proposal-docume
 
 ## Access
 
-**https://seamvex.com/admin/login** — Google SSO (`@seamvex.com` only).
+**https://seamvex.com/admin/login** — Google SSO (`@seamvex.com` only). Production requires Cloud Run env C2–C4; until set, `/api/auth/google` returns **503**.
 
 Dev fallback: password login when `GOOGLE_CLIENT_ID` is unset.
 

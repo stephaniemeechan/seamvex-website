@@ -2,6 +2,8 @@
 
 Separate AGPL service for contract signing. CRM app integrates via API + webhook.
 
+> **Production status (2026-06-20):** `sign.seamvex.com` is **not deployed** — host unreachable. Agreement send/sign in production is blocked until this service is live and Cloud Run env C7–C9 are set. See [GET-READY.md](docs/GET-READY.md) D4–D5.
+
 ## Local (Docker Compose)
 
 ```bash
