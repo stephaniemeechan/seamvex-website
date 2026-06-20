@@ -30,3 +30,4 @@ xero-customers-export.md
 
 # IDE / OS
 Thumbs.db
+*.tsbuildinfo

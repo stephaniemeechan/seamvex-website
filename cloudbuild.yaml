@@ -9,7 +9,7 @@
 
 substitutions:
   _REGION: europe-west1
-  _SERVICE: seamvex-website
+  _SERVICE: seamvex-website-2
 
 steps:
   - name: gcr.io/cloud-builders/docker
