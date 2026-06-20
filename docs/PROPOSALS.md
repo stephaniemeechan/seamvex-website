@@ -26,8 +26,8 @@ Dev fallback: password login when `GOOGLE_CLIENT_ID` is unset.
 2. **New agreement** → order type, term, payment, line items → save **proposal**.
 3. **Download proposal** → pricing PDF (ex VAT).
 4. **Generate contract** → status `contract`.
-5. **Send for signature** → Documenso envelope + Gmail to customer; CRM ticket created.
-6. Customer signs via Documenso link → webhook → signed PDF stored → **DRAFT invoice in Xero**.
+5. **Send for signature** → Documenso envelope + Gmail cover note to customer; CRM ticket created.
+6. Customer signs via Documenso link → webhook (`x-documenso-secret`) → signed PDF stored (GCS in prod) → **DRAFT invoice in Xero**.
 
 Legacy `/sign/[token]` used only in development when Documenso is not configured (`NODE_ENV=development`).
 
@@ -37,7 +37,7 @@ Legacy `/sign/[token]` used only in development when Documenso is not configured
 |-----|-------|------|
 | Proposal | `GET /api/orders/[id]/proposal-pdf` | Draft proposal |
 | Contract | `GET /api/orders/[id]/pdf` | After generate contract |
-| Signed | `GET /api/orders/[id]/signed-pdf` | After signing |
+| Signed | `GET /api/orders/[id]/signed-pdf` | After signing (reads GCS via `readOrderPdf` in prod) |
 | DPA | `GET /api/orders/[id]/dpa` | Fully Managed |
 | Privacy | `GET /api/orders/[id]/privacy` | Fully Managed |
 

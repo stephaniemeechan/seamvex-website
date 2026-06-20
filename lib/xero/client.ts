@@ -283,16 +283,32 @@ export async function fetchXeroContacts(): Promise<XeroContact[]> {
   const auth = await getXeroAccessToken()
   if (!auth) throw new Error("Xero not connected")
 
-  const res = await fetch("https://api.xero.com/api.xro/2.0/Contacts?where=IsCustomer==true", {
-    headers: {
-      Authorization: `Bearer ${auth.token}`,
-      "Xero-Tenant-Id": auth.tenantId,
-      Accept: "application/json",
-    },
-  })
-  if (!res.ok) throw new Error(`Xero contacts failed: ${await res.text()}`)
-  const data = (await res.json()) as { Contacts?: XeroContact[] }
-  return data.Contacts ?? []
+  const contacts: XeroContact[] = []
+  let page = 1
+
+  while (true) {
+    const url = new URL("https://api.xero.com/api.xro/2.0/Contacts")
+    url.searchParams.set("where", "IsCustomer==true")
+    url.searchParams.set("page", String(page))
+
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${auth.token}`,
+        "Xero-Tenant-Id": auth.tenantId,
+        Accept: "application/json",
+      },
+    })
+    if (!res.ok) throw new Error(`Xero contacts page ${page} failed: ${await res.text()}`)
+
+    const data = (await res.json()) as { Contacts?: XeroContact[] }
+    const batch = data.Contacts ?? []
+    if (batch.length === 0) break
+    contacts.push(...batch)
+    if (batch.length < 100) break
+    page += 1
+  }
+
+  return contacts
 }
 
 export async function fetchXeroContact(id: string): Promise<XeroContact | null> {

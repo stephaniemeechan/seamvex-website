@@ -1,6 +1,8 @@
 # Xero org setup (Section B)
 
-Complete after app code is running locally and Google SSO works.
+Complete after app code is running locally and Google SSO works in production (`seamvex-website-2`).
+
+**Manual** — not automated by deploy. Run after Cloud Run env (GET-READY §C) and Xero redirect URI (GET-READY §D3) are set.
 
 ## 1. Connect OAuth
 

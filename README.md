@@ -32,7 +32,7 @@ Optional Documenso: `docker compose --profile documenso up -d` (creates `documen
 | Password login if `GOOGLE_CLIENT_ID` unset | Google OAuth only; password login **403** |
 | Legacy `/sign/[token]` if Documenso not configured | Legacy sign **404**; Documenso **required** |
 | `SESSION_SECRET` falls back to `ADMIN_PASSWORD` | **Requires** `SESSION_SECRET` |
-| Documenso optional on send | **Requires** `DOCUMENSO_API_KEY` + `DOCUMENSO_WEBHOOK_SECRET` |
+| Documenso optional on send | **Requires** `DOCUMENSO_API_URL` + `DOCUMENSO_API_KEY` + `DOCUMENSO_WEBHOOK_SECRET` |
 
 Implementation: [`lib/env.ts`](lib/env.ts) — `legacySignAllowed()`, `passwordLoginAllowed()`, `documensoRequired()`, `assertProductionEnv()`.
 
@@ -78,14 +78,16 @@ Implementation: [`lib/env.ts`](lib/env.ts) — `legacySignAllowed()`, `passwordL
 | Single Xero tenant lock | `lib/xero/client.ts` `setLockedTenantId` |
 | Legacy sign: non-production only, requires `status=sent` | `app/api/sign/[token]/*` |
 | `signToken` stripped from order API in production | `sanitizeOrderForApi` / `sanitizeOrdersForApi` |
-| Documenso webhook secret (timing-safe) | `app/api/documenso/webhook/route.ts` |
+| Documenso webhook secret (header `x-documenso-secret`, timing-safe) | `app/api/documenso/webhook/route.ts` |
 | Twilio voice webhooks (public routes, signature verified) | `middleware.ts` + `app/api/twilio/voice/*` |
 
 ---
 
-## Production environment (required)
+## Production environment
 
-Set in Cloud Run / Secret Manager — see [`docs/DEPLOY.md`](docs/DEPLOY.md):
+Cloud Run service: **`seamvex-website-2`** (europe-west1). See [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+**Required** — `lib/env.ts` `PROD_REQUIRED` (throws on first DB access if missing):
 
 ```
 SESSION_SECRET
@@ -93,11 +95,20 @@ GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI
 DATABASE_URL
 GCS_BUCKET
 DOCUMENSO_API_URL / DOCUMENSO_API_KEY / DOCUMENSO_WEBHOOK_SECRET
-XERO_CLIENT_ID / XERO_CLIENT_SECRET / XERO_REDIRECT_URI
-TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_PHONE_NUMBER
 NEXT_PUBLIC_APP_URL=https://seamvex.com
-ADMIN_EMAIL=s.meechan@seamvex.com
 ```
+
+**Also set for full CRM** (not in `PROD_REQUIRED`):
+
+```
+XERO_CLIENT_ID / XERO_CLIENT_SECRET / XERO_REDIRECT_URI
+ADMIN_EMAIL=s.meechan@seamvex.com
+TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_PHONE_NUMBER   # voice only; app starts without these
+```
+
+Gmail send is per-user OAuth (Settings → Connect Gmail). Google OAuth client needs redirect `https://seamvex.com/api/gmail/connect/callback` (and localhost for dev).
+
+GCS: Cloud Run service account needs **`roles/storage.objectUser`** on the PDF bucket.
 
 Voice routing (business hours, greetings, ring group, after-hours mobile) is stored in DB (`voice_config`), configured at `/admin/settings` — not env vars.
 
@@ -154,12 +165,15 @@ App does **not** send from `@seamcor.com` in v1.
 
 ## Manual steps you still must do
 
-1. **Go-live checklist** — [`docs/GET-READY.md`](docs/GET-READY.md): work through env vars, deploy, and Twilio in order
-2. **Section B** — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md): connect Xero, map Items, verify test sign → DRAFT invoice
-3. **Section C** — [`docs/DEPLOY.md`](docs/DEPLOY.md): Cloud SQL, GCS, Secret Manager, deploy `seamvex-website` + `seamvex-documenso` on `sign.seamvex.com`
-4. **Twilio Console** — company number **A call comes in** webhook: `POST https://<your-domain>/api/twilio/voice/inbound` (then configure voice routing at `/admin/settings`)
-5. **Commit** `deploy/legal/` and `public/logos/` after `pnpm sync-legal-bundle`
-6. **Greenfield** (when ready): `pnpm reset-crm-data --import-xero`
+1. **Go-live checklist** — [`docs/GET-READY.md`](docs/GET-READY.md): sections C–E (Cloud Run env, external consoles, post-live)
+2. **Cloud Run env** — [`docs/DEPLOY.md`](docs/DEPLOY.md): set vars on **`seamvex-website-2`**; GCS IAM for signed PDFs
+3. **Documenso CE** — [`e-sign.md`](e-sign.md): deploy `seamvex-documenso` on `sign.seamvex.com`; webhook header `x-documenso-secret`
+4. **Google OAuth** — SSO redirect + Gmail redirect `https://seamvex.com/api/gmail/connect/callback`
+5. **Xero** — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md): connect org, sync contacts, test sign → DRAFT invoice
+6. **Twilio Console** — voice only (no SMS): **A call comes in** → `POST https://seamvex.com/api/twilio/voice/inbound`; then voice routing at `/admin/settings`
+7. **Gmail** — each admin connects in Settings (per-user OAuth)
+8. **Greenfield** (when ready): `pnpm reset-crm-data --import-xero`
+9. **Cleanup** — delete orphan Cloud Run services `seamvex-website` (europe-west1 + europe-west2) after deploy verified
 
 ---
 

@@ -24,21 +24,31 @@ Sign in with Google Workspace **`@seamvex.com`** only. First user matching `ADMI
 
 1. **New order** — pick Xero contact, build proposal.
 2. **Generate contract** — PDF with legal lockup (`seamcor-legal.png`).
-3. **Send** — creates Documenso envelope (if configured), Gmail with signing link, CRM ticket + tasks.
-4. **Sign** — customer signs via Documenso; webhook marks order signed, stores PDF (GCS or `data/pdfs/`), creates **DRAFT** Xero invoice.
+3. **Send** — creates Documenso envelope (if configured), Gmail **cover note** (not the full Stephanie letter) with signing link, CRM ticket + tasks.
+4. **Sign** — customer signs via Documenso; webhook (`x-documenso-secret`) marks order signed, stores PDF in GCS (`gcs://…`) or local `data/pdfs/`, creates **DRAFT** Xero invoice.
 
 Legacy `/sign/[token]` remains for local development when Documenso is not configured (`NODE_ENV=development` only).
 
 ### Email
 
-- Sent from **`user@seamvex.com`** via Gmail API (connect in Settings).
-- Templates from `deploy/legal/customer-comms.md` with merge fields: `[Name]`, `[company]`, `[accountsEmail]`, `[documentNumber]`, `[signingLink]`.
+- Sent from **`"Name (Seamcor)" <user@seamvex.com>`** via Gmail API (each user connects in Settings).
+- On agreement send, the app uses the **short cover note** from `deploy/legal/customer-comms.md` (`coverNoteAgreement`), plus a plain-text signing link — **not** the full “Email body (Stephanie)” letter (that template is for manual customer transition emails).
+- Merge fields: `[Name]`, `[Name / team]`, `[company]`, `[document]`, `[documentNumber]`, `[accountsEmail]`, `[signingLink]`.
+- Gmail thread ID is stored on the agreement ticket for follow-up.
 - Invoices: send from **Xero**, not Gmail.
+
+### Voice (Twilio)
+
+- **Voice only — no SMS** in v1.
+- Outbound click-to-call from contact/ticket detail (rings CRM user, then customer).
+- Inbound to company line (`TWILIO_PHONE_NUMBER`) simulrings users with **Receive inbound calls**; after-hours routes to on-call mobile.
+- Hours, greetings, ring group, and no-answer behaviour: **Admin → Settings** (`voice_config` in DB).
+- Twilio Console: **A call comes in** → `POST https://seamvex.com/api/twilio/voice/inbound`.
 
 ### Tickets & tasks
 
 - Auto-created on agreement send.
-- Twilio voice/call logged on ticket activity feed.
+- Twilio **voice** calls logged on ticket activity feed (no SMS).
 
 ### Resources
 
@@ -101,5 +111,6 @@ App never sends `@seamcor.com` in v1.
 
 ## Out of scope (v1)
 
+- SMS (Twilio voice only)
 - Cashflow / overdue reporting dashboard
 - Invoice paid polling

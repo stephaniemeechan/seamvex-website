@@ -34,22 +34,28 @@ Do **not** commit `.env.local`. It stays on your machine only.
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| B1 | Run `git status` — `.env.local` must **not** appear | [ ] | |
-| B2 | Stage all project files (`git add .` or selective add) | [ ] | |
-| B3 | Confirm staged: `public/logos/*.png` (all 3 required PNGs) | [ ] | |
-| B4 | Confirm staged: `deploy/legal/` | [ ] | |
-| B5 | Confirm staged: CRM code (`app/admin/`, `app/api/`, `lib/`, `middleware.ts`, etc.) | [ ] | |
-| B6 | Commit | [ ] | |
-| B7 | Push to `main` | [ ] | |
-| B8 | Cloud Build trigger runs and finishes green | [ ] | |
+| B1 | Run `git status` — `.env.local` must **not** appear | [x] | Verified before push |
+| B2 | Stage all project files (`git add .` or selective add) | [x] | |
+| B3 | Confirm staged: `public/logos/*.png` (all 3 required PNGs) | [x] | 3 PNGs committed in repo |
+| B4 | Confirm staged: `deploy/legal/` | [x] | 8 legal files committed |
+| B5 | Confirm staged: CRM code (`app/admin/`, `app/api/`, `lib/`, `middleware.ts`, etc.) | [x] | |
+| B6 | Commit | [x] | `d1531a5` — deploy target, signed-pdf GCS, prod env vars |
+| B7 | Push to `main` | [x] | Pushed to `main` |
+| B8 | Cloud Build trigger runs and finishes green | [ ] | Confirm in Cloud Build console after push |
+
+**Code fixes in `d1531a5` (done in repo):**
+
+- `cloudbuild.yaml` → deploys **`seamvex-website-2`** (not orphan `seamvex-website`)
+- `signed-pdf` route uses `readOrderPdf()` for GCS paths
+- `lib/env.ts` `PROD_REQUIRED` includes `GOOGLE_REDIRECT_URI`, `DOCUMENSO_API_URL`, `NEXT_PUBLIC_APP_URL`
 
 ---
 
-## C — Google Cloud Run env (`seamvex-website`, region `europe-west1`)
+## C — Google Cloud Run env (`seamvex-website-2`, region `europe-west1`)
 
-Set each in **Cloud Run → seamvex-website → Edit → Variables & secrets** (or Secret Manager references).
+Set each in **Cloud Run → seamvex-website-2 → Edit → Variables & secrets** (or Secret Manager references).
 
-Required by code in production (`lib/env.ts` + app). **None of these go in `.env.local` for prod.**
+Required by code in production (`lib/env.ts` `PROD_REQUIRED`). **None of these go in `.env.local` for prod.**
 
 | # | Variable | Status | Where you get the value | Notes |
 |---|----------|--------|---------------------------|-------|
@@ -58,9 +64,9 @@ Required by code in production (`lib/env.ts` + app). **None of these go in `.env
 | C3 | `GOOGLE_CLIENT_SECRET` | [ ] | Same OAuth client | |
 | C4 | `GOOGLE_REDIRECT_URI` | [ ] | Set to: `https://seamvex.com/api/auth/google/callback` | Must match OAuth client |
 | C5 | `DATABASE_URL` | [ ] | Cloud SQL Postgres connection string | |
-| C6 | `GCS_BUCKET` | [ ] | Your GCS bucket name (e.g. `seamvex-contracts-eu`) | |
+| C6 | `GCS_BUCKET` | [ ] | `seamvex-contracts-eu` | Cloud Run SA needs `storage.objectUser` — see [DEPLOY.md](./DEPLOY.md) |
 | C7 | `DOCUMENSO_API_KEY` | [ ] | Documenso admin | |
-| C8 | `DOCUMENSO_WEBHOOK_SECRET` | [ ] | You choose; same value in Documenso webhook config | |
+| C8 | `DOCUMENSO_WEBHOOK_SECRET` | [ ] | You choose; same value in Documenso webhook config | Header `x-documenso-secret` |
 | C9 | `DOCUMENSO_API_URL` | [ ] | Set to: `https://sign.seamvex.com/api/v2` | |
 | C10 | `XERO_CLIENT_ID` | [ ] | https://developer.xero.com/app/manage | |
 | C11 | `XERO_CLIENT_SECRET` | [ ] | Same Xero app | |
@@ -89,13 +95,15 @@ Required by code in production (`lib/env.ts` + app). **None of these go in `.env
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| D1 | Google OAuth client: add redirect `https://seamvex.com/api/auth/google/callback` | [ ] | Keep localhost URI if you use Google locally later |
-| D2 | Xero app: add redirect `https://seamvex.com/api/xero/callback` | [ ] | Keep `http://localhost:3000/api/xero/callback` for local |
-| D3 | Documenso service running at `sign.seamvex.com` | [ ] | See `e-sign.md` |
-| D4 | Documenso webhook URL: `https://seamvex.com/api/documenso/webhook` | [ ] | Header secret = `DOCUMENSO_WEBHOOK_SECRET` |
-| D5 | Cloud SQL instance exists and app can connect | [ ] | |
-| D6 | GCS bucket exists (region `europe-west1`) | [ ] | |
-| D7 | Twilio `+441870470573` voice webhook → `https://seamvex.com/api/twilio/voice/inbound` | [ ] | Rotate auth token if exposed |
+| D1 | Google OAuth client: add redirect `https://seamvex.com/api/auth/google/callback` | [ ] | Keep `http://localhost:3000/api/auth/google/callback` if you use Google locally |
+| D2 | Google OAuth client: add Gmail redirect `https://seamvex.com/api/gmail/connect/callback` | [ ] | Keep `http://localhost:3000/api/gmail/connect/callback` for local |
+| D3 | Xero app: add redirect `https://seamvex.com/api/xero/callback` | [ ] | Keep `http://localhost:3000/api/xero/callback` for local |
+| D4 | Documenso service running at `sign.seamvex.com` | [ ] | See `e-sign.md` — **manual deploy** |
+| D5 | Documenso webhook URL: `https://seamvex.com/api/documenso/webhook` | [ ] | Header **`x-documenso-secret`** = `DOCUMENSO_WEBHOOK_SECRET` |
+| D6 | Cloud SQL instance exists and app can connect | [ ] | |
+| D7 | GCS bucket exists (region `europe-west1`) + Run SA has `storage.objectUser` | [ ] | See [DEPLOY.md](./DEPLOY.md) |
+| D8 | Twilio `+441870470573` voice webhook → `https://seamvex.com/api/twilio/voice/inbound` | [ ] | Rotate auth token if exposed |
+| D9 | Delete orphan Cloud Run services `seamvex-website` (ew1 + ew2) after B8 green | [ ] | Live service is `seamvex-website-2` |
 
 ---
 
@@ -104,16 +112,14 @@ Required by code in production (`lib/env.ts` + app). **None of these go in `.env
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | E1 | Section B in `docs/XERO-SETUP.md` — connect Xero, sync contacts, test sign → DRAFT invoice | [ ] | |
-| E2 | Connect Gmail per admin user in Settings | [ ] | |
+| E2 | Connect Gmail per admin user in Settings | [ ] | Requires D2 redirect URIs |
 | E3 | `pnpm reset-crm-data --import-xero` when ready for greenfield | [ ] | |
 
 ---
 
 ## Current session log
 
-Use this line when we finish each step together:
-
 ```
-Last completed: A14 — login works (fixed SQLite migration in lib/db/migrate.ts)
-Next step: B1 — git status, confirm .env.local not staged
+Last completed: B7 — pushed d1531a5 to main (cloudbuild → seamvex-website-2, signed-pdf GCS, prod env)
+Next step: B8 — confirm Cloud Build green; then C1–C16 in Cloud Run console
 ```

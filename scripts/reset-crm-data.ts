@@ -12,6 +12,7 @@ import path from "path"
 import { closeDb, ensureDb, execute, newId } from "@/lib/db"
 import { upsertContactFromSnapshot } from "@/lib/crm/contacts"
 import type { CustomerSnapshot } from "@/lib/proposals/orders"
+import type { XeroCustomersExport } from "@/lib/xero/export-customers"
 
 async function main() {
   await ensureDb()
@@ -33,7 +34,7 @@ async function main() {
       console.error("xero-customers-export.json not found. Run pnpm export-xero-customers first.")
       process.exit(1)
     }
-    const data = JSON.parse(fs.readFileSync(exportPath, "utf8")) as {
+    const data = JSON.parse(fs.readFileSync(exportPath, "utf8")) as XeroCustomersExport & {
       customers?: Array<{
         contactId: string
         name: string
@@ -49,21 +50,34 @@ async function main() {
         }
       }>
     }
-    const customers = data.customers ?? []
-    console.log(`Importing ${customers.length} contacts from Xero export...`)
-    for (const c of customers) {
-      const snapshot: CustomerSnapshot = {
-        xeroContactId: c.contactId,
-        companyName: c.name,
-        customerNumber: c.accountNumber,
-        contactEmail: c.email,
-        contactPhone: c.phone,
-        billingAddress1: c.address?.line1,
-        billingAddress2: c.address?.line2,
-        billingAddress3: c.address?.line3,
-        postcode: c.address?.postcode,
-        country: c.address?.country,
+
+    const snapshots: CustomerSnapshot[] = []
+
+    if (data.organisations?.length) {
+      for (const org of data.organisations) {
+        for (const snap of org.agreementSnapshots ?? []) {
+          snapshots.push(snap)
+        }
       }
+    } else if (data.customers?.length) {
+      for (const c of data.customers) {
+        snapshots.push({
+          xeroContactId: c.contactId,
+          companyName: c.name,
+          customerNumber: c.accountNumber,
+          contactEmail: c.email,
+          contactPhone: c.phone,
+          billingAddress1: c.address?.line1,
+          billingAddress2: c.address?.line2,
+          billingAddress3: c.address?.line3,
+          postcode: c.address?.postcode,
+          country: c.address?.country,
+        })
+      }
+    }
+
+    console.log(`Importing ${snapshots.length} contacts from Xero export...`)
+    for (const snapshot of snapshots) {
       await upsertContactFromSnapshot(snapshot)
     }
     console.log("Import complete.")

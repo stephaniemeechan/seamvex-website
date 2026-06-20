@@ -7,9 +7,9 @@ Source plans: chat refinements (no cashflow, GDrive links, Twilio v1, retire leg
 | # | Item | Priority | Status |
 |---|------|----------|--------|
 | 1 | Production env gate (`lib/env.ts`) | BLOCKER | Implemented |
-| 2 | Legal deploy bundle + logos committed | BLOCKER | Implemented |
+| 2 | Legal deploy bundle + logos committed | BLOCKER | Implemented — `public/logos/*.png` + `deploy/legal/` in git (verified 2026-06-20) |
 | 3 | Postgres schema + migrations | BLOCKER | Implemented |
-| 4 | GCS PDF storage in prod | BLOCKER | Implemented (requires `GCS_BUCKET`) |
+| 4 | GCS PDF storage in prod | BLOCKER | Implemented — upload via `saveOrderPdf`; download via `readOrderPdf()` in signed-pdf route (`d1531a5`) |
 | 5 | Google SSO `@seamvex.com` only | BLOCKER | Implemented |
 | 6 | Password login only in development without Google OAuth | BLOCKER | Implemented |
 | 7 | `SESSION_SECRET` required in production | BLOCKER | Implemented |
@@ -29,7 +29,7 @@ Source plans: chat refinements (no cashflow, GDrive links, Twilio v1, retire leg
 | 21 | DPA + platform privacy PDF routes | MUST | Implemented |
 | 22 | Documenso CE integration | BLOCKER | Implemented (requires env + separate service deploy) |
 | 23 | Documenso customer email disabled | MUST | Implemented (`distributionMethod: NONE`) |
-| 24 | Documenso webhook verification | BLOCKER | Implemented (shared secret header) |
+| 24 | Documenso webhook verification | BLOCKER | Implemented — header `x-documenso-secret` vs `DOCUMENSO_WEBHOOK_SECRET` |
 | 25 | Legacy `/sign` retired in production | BLOCKER | Implemented (`legacySignAllowed()` = `!isProduction()`) |
 | 26 | Legacy sign requires `status=sent` in dev | BLOCKER | Implemented |
 | 27 | `signToken` stripped from API in prod | BLOCKER | Implemented |
@@ -41,9 +41,9 @@ Source plans: chat refinements (no cashflow, GDrive links, Twilio v1, retire leg
 | 33 | No cashflow/overdue reporting | MUST | Implemented |
 | 34 | Xero DRAFT invoice on Documenso sign | MUST | Implemented |
 | 35 | Middleware hardening | BLOCKER | Implemented |
-| 36 | Documentation accurate | MUST | See README.md |
+| 36 | Documentation accurate | MUST | Audited 2026-06-20 — README, DEPLOY, GET-READY, CRM, e-sign, PROPOSALS, XERO-SETUP |
 | 37 | Section B — Xero org setup (manual) | MUST | `docs/XERO-SETUP.md` — you run this |
 | 38 | Section C — Cloud Run deploy (manual) | BLOCKER | `docs/DEPLOY.md` — you run this |
-| 39 | Full pre-production audit | BLOCKER | Run after code complete |
+| 39 | Full pre-production audit | BLOCKER | Complete 2026-06-20 — code + docs vs GCP reality; manual C/D/E in GET-READY remain |
 
 See dependency order and acceptance criteria in sub-agent audit output (2026-06-19).
