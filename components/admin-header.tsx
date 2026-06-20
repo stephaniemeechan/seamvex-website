@@ -12,12 +12,12 @@ const NAV_BASE = [
   { href: "/admin/contacts", label: "Contacts" },
   { href: "/admin/tickets", label: "Tickets" },
   { href: "/admin/tasks", label: "Tasks" },
+  { href: "/admin/settings", label: "Settings" },
 ] as const
 
 const NAV_ADMIN = [
   { href: "/admin/orders/new", label: "New agreement" },
   { href: "/admin/resources", label: "Resources" },
-  { href: "/admin/settings", label: "Settings" },
 ] as const
 
 export function AdminHeader({ role }: { role?: SessionRole | null }) {

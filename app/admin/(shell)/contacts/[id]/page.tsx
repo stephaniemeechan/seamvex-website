@@ -9,8 +9,8 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
   if (!session) redirect("/admin/login")
 
   const { id } = await params
-  const twilioPhone = process.env.TWILIO_PHONE_NUMBER ?? null
+  const companyPhone = process.env.TWILIO_PHONE_NUMBER ?? null
   return (
-    <ContactDetailClient id={id} twilioPhone={twilioPhone} isAdmin={session.role === "admin"} />
+    <ContactDetailClient id={id} companyPhone={companyPhone} isAdmin={session.role === "admin"} />
   )
 }

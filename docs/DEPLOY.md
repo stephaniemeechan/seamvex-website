@@ -27,7 +27,14 @@ DOCUMENSO_API_KEY=
 DOCUMENSO_WEBHOOK_SECRET=
 NEXT_PUBLIC_APP_URL=https://seamvex.com
 ADMIN_EMAIL=s.meechan@seamvex.com
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=+441870470573
 ```
+
+Voice routing (hours, after-hours mobile) is configured in **Admin → Settings**, not env vars.
+
+Twilio number: set **A call comes in** webhook to `https://seamvex.com/api/twilio/voice/inbound` (HTTP POST).
 
 Mount secrets via Secret Manager references, not plain env in source control.
 

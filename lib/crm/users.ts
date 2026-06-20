@@ -1,11 +1,14 @@
 import { execute, query, queryOne, ensureDb, newId } from "@/lib/db"
 import type { UserRole } from "@/lib/crm/contacts"
+import { isValidE164, normalizePhoneE164 } from "@/lib/phone/normalize"
 
 export type UserRecord = {
   id: string
   googleSub: string | null
   email: string
   name: string | null
+  phone: string | null
+  availableForCalls: boolean
   role: UserRole
   active: boolean
   createdAt: string
@@ -18,11 +21,22 @@ function rowToUser(row: Record<string, unknown>): UserRecord {
     googleSub: (row.google_sub as string | null) ?? null,
     email: row.email as string,
     name: (row.name as string | null) ?? null,
+    phone: (row.phone as string | null) ?? null,
+    availableForCalls: Boolean(row.available_for_calls),
     role: row.role as UserRole,
     active: Boolean(row.active),
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
   }
+}
+
+function normalizeUserPhone(phone: string | null | undefined): string | null {
+  if (phone == null || !phone.trim()) return null
+  const e164 = normalizePhoneE164(phone.trim())
+  if (!e164 || !isValidE164(e164)) {
+    throw new Error("Invalid phone — use E.164 format, e.g. +447...")
+  }
+  return e164
 }
 
 export async function getUserByEmail(email: string): Promise<UserRecord | null> {
@@ -86,11 +100,42 @@ export async function upsertGoogleUser(input: {
   const id = newId("usr")
   const role: UserRole = email === adminEmail ? "admin" : "standard"
   await execute(
-    `INSERT INTO users (id, google_sub, email, name, role, active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
+    `INSERT INTO users (id, google_sub, email, name, phone, available_for_calls, role, active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, NULL, 0, ?, 1, ?, ?)`,
     [id, input.googleSub, email, input.name ?? null, role, now, now],
   )
   return (await getUserById(id))!
+}
+
+export async function updateUserProfile(
+  userId: string,
+  patch: { phone?: string | null; availableForCalls?: boolean },
+): Promise<UserRecord | null> {
+  await ensureDb()
+  const fields: string[] = []
+  const params: unknown[] = []
+
+  if (patch.phone !== undefined) {
+    fields.push("phone = ?")
+    params.push(patch.phone === null || patch.phone === "" ? null : normalizeUserPhone(patch.phone))
+  }
+  if (patch.availableForCalls !== undefined) {
+    fields.push("available_for_calls = ?")
+    params.push(patch.availableForCalls ? 1 : 0)
+  }
+  if (!fields.length) return getUserById(userId)
+
+  fields.push("updated_at = ?")
+  params.push(new Date().toISOString(), userId)
+  await execute(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, params)
+  return getUserById(userId)
+}
+
+export async function updateUserPhoneByAdmin(
+  userId: string,
+  patch: { phone?: string | null; availableForCalls?: boolean },
+): Promise<UserRecord | null> {
+  return updateUserProfile(userId, patch)
 }
 
 export async function setUserRole(userId: string, role: UserRole): Promise<void> {
@@ -109,4 +154,16 @@ export async function setUserActive(userId: string, active: boolean): Promise<vo
     new Date().toISOString(),
     userId,
   ])
+}
+
+export function userToPublicJson(u: UserRecord) {
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    phone: u.phone,
+    availableForCalls: u.availableForCalls,
+    role: u.role,
+    active: u.active,
+  }
 }

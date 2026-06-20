@@ -34,11 +34,11 @@ type Ticket = {
 
 export function ContactDetailClient({
   id,
-  twilioPhone,
+  companyPhone,
   isAdmin,
 }: {
   id: string
-  twilioPhone: string | null
+  companyPhone: string | null
   isAdmin: boolean
 }) {
   const [contact, setContact] = useState<Contact | null>(null)
@@ -212,14 +212,15 @@ export function ContactDetailClient({
         </div>
 
         <div className="rounded-xl border border-border p-4">
-          <p className="text-sm font-medium text-primary">Twilio SMS</p>
+          <p className="text-sm font-medium text-primary">Company line</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {twilioPhone ? (
+            {companyPhone ? (
               <>
-                Inbound SMS number: <span className="font-mono text-foreground">{twilioPhone}</span>
+                Outbound calls show{" "}
+                <span className="font-mono text-foreground">{companyPhone}</span> as caller ID.
               </>
             ) : (
-              "Set TWILIO_PHONE_NUMBER in environment to display the inbound number."
+              "Set TWILIO_PHONE_NUMBER in environment to enable calling."
             )}
           </p>
         </div>

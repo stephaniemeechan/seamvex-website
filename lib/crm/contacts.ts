@@ -1,5 +1,6 @@
 import { execute, query, queryOne, ensureDb, newId } from "@/lib/db"
 import type { CustomerSnapshot } from "@/lib/proposals/orders"
+import { phonesMatch, normalizePhoneE164 } from "@/lib/phone/normalize"
 
 export type ContactStatus = "active" | "inactive"
 export type UserRole = "admin" | "standard"
@@ -122,6 +123,23 @@ export async function getContactByXeroId(xeroContactId: string): Promise<Contact
   return row ? rowToContact(row) : null
 }
 
+export async function findContactByPhone(from: string): Promise<ContactRecord | null> {
+  await ensureDb()
+  const rows = await query<Record<string, unknown>>(
+    "SELECT * FROM contacts WHERE contact_phone IS NOT NULL AND TRIM(contact_phone) != ''",
+  )
+  for (const row of rows) {
+    const phone = row.contact_phone as string
+    if (phonesMatch(from, phone)) return rowToContact(row)
+  }
+  return null
+}
+
+function normalizeContactPhoneField(phone: string | null | undefined): string | null {
+  if (phone == null || !phone.trim()) return null
+  return normalizePhoneE164(phone) ?? phone.trim()
+}
+
 export async function upsertContactFromSnapshot(
   snapshot: CustomerSnapshot,
   supportInfo?: string | null,
@@ -149,7 +167,7 @@ export async function upsertContactFromSnapshot(
         snapshot.postcode ?? null,
         snapshot.country ?? null,
         snapshot.contactName ?? null,
-        snapshot.contactPhone ?? null,
+        normalizeContactPhoneField(snapshot.contactPhone),
         snapshot.contactEmail ?? null,
         snapshot.accountsContact ?? null,
         snapshot.accountsEmail ?? null,
@@ -183,7 +201,7 @@ export async function upsertContactFromSnapshot(
       snapshot.postcode ?? null,
       snapshot.country ?? null,
       snapshot.contactName ?? null,
-      snapshot.contactPhone ?? null,
+      normalizeContactPhoneField(snapshot.contactPhone),
       snapshot.contactEmail ?? null,
       snapshot.accountsContact ?? null,
       snapshot.accountsEmail ?? null,
@@ -276,7 +294,7 @@ export async function createContact(input: {
       input.postcode ?? null,
       input.country ?? null,
       input.contactName ?? null,
-      input.contactPhone ?? null,
+      normalizeContactPhoneField(input.contactPhone),
       input.contactEmail ?? null,
       input.accountsContact ?? null,
       input.accountsEmail ?? null,
@@ -297,7 +315,8 @@ export async function updateContact(
   for (const key of CONTACT_PATCH_FIELDS) {
     if (patch[key] !== undefined) {
       fields.push(`${PATCH_TO_COLUMN[key]} = ?`)
-      params.push(patch[key])
+      const value = patch[key]
+      params.push(key === "contactPhone" ? normalizeContactPhoneField(value) : value)
     }
   }
   if (!fields.length) return getContact(id)

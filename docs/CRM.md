@@ -38,7 +38,7 @@ Legacy `/sign/[token]` remains for local development when Documenso is not confi
 ### Tickets & tasks
 
 - Auto-created on agreement send.
-- Twilio SMS/call logged on ticket activity feed.
+- Twilio voice/call logged on ticket activity feed.
 
 ### Resources
 

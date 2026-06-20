@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireSessionMutation } from "@/lib/auth/api-guards"
-import { initiateCall } from "@/lib/twilio/client"
+import { getUserById } from "@/lib/crm/users"
+import { initiateOutboundCall } from "@/lib/twilio/client"
 
 export const runtime = "nodejs"
 
@@ -13,8 +14,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "to is required" }, { status: 400 })
   }
 
+  const user = await getUserById(session.userId)
+  if (!user?.phone) {
+    return NextResponse.json(
+      { error: "Set your phone in Settings before placing calls" },
+      { status: 400 },
+    )
+  }
+
   try {
-    const result = await initiateCall(body.to.trim(), {
+    const result = await initiateOutboundCall({
+      agentPhone: user.phone,
+      customerPhone: body.to.trim(),
       ticketId: body.ticketId,
       createdBy: session.userId,
     })

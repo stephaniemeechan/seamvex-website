@@ -258,6 +258,8 @@ export async function runMigrations(): Promise<void> {
   await addColumnIfMissing("orders", "documenso_signing_url", "TEXT")
   await addColumnIfMissing("orders", "xero_invoice_id", "TEXT")
   await addColumnIfMissing("contracts", "contact_id", "TEXT")
+  await addColumnIfMissing("users", "phone", "TEXT")
+  await addColumnIfMissing("users", "available_for_calls", "INTEGER NOT NULL DEFAULT 0")
 
   for (const sql of INDEX_MIGRATIONS) {
     await execute(sql)

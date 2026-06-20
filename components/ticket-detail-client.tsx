@@ -32,7 +32,6 @@ export function TicketDetailClient({ id }: { id: string }) {
   const [contact, setContact] = useState<Contact | null>(null)
   const [activities, setActivities] = useState<Activity[]>([])
   const [note, setNote] = useState("")
-  const [smsBody, setSmsBody] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
@@ -100,32 +99,6 @@ export function TicketDetailClient({ id }: { id: string }) {
       setNote("")
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add note")
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function sendSms(e: React.FormEvent) {
-    e.preventDefault()
-    if (!smsBody.trim() || !contact?.contactPhone) return
-    setSaving(true)
-    setError("")
-    try {
-      const res = await csrfFetch("/api/twilio/sms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: contact.contactPhone,
-          message: smsBody.trim(),
-          ticketId: id,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? "Failed to send SMS")
-      await load()
-      setSmsBody("")
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to send SMS")
     } finally {
       setSaving(false)
     }
@@ -246,31 +219,6 @@ export function TicketDetailClient({ id }: { id: string }) {
             </button>
           </div>
         )}
-      </div>
-
-      <div className="rounded-xl border border-border p-4 space-y-3">
-        <p className="text-sm font-medium text-primary">Send SMS</p>
-        {!contact?.contactPhone ? (
-          <p className="text-xs text-muted-foreground">Add a phone number on the contact record first.</p>
-        ) : (
-          <p className="text-xs text-muted-foreground">To: {contact.contactPhone}</p>
-        )}
-        <form onSubmit={sendSms} className="space-y-2">
-          <textarea
-            value={smsBody}
-            onChange={(e) => setSmsBody(e.target.value)}
-            rows={2}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-            placeholder="SMS message to customer…"
-          />
-          <button
-            type="submit"
-            disabled={saving || !smsBody.trim() || !contact?.contactPhone}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-50"
-          >
-            Send SMS
-          </button>
-        </form>
       </div>
     </div>
   )

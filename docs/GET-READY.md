@@ -76,11 +76,12 @@ Required by code in production (`lib/env.ts` + app). **None of these go in `.env
 
 | # | Variable | Status | Notes |
 |---|----------|--------|-------|
-| C17 | `TWILIO_ACCOUNT_SID` | [ ] | SMS / click-to-call |
-| C18 | `TWILIO_AUTH_TOKEN` | [ ] | |
-| C19 | `TWILIO_PHONE_NUMBER` | [ ] | |
-| C20 | `TWILIO_VOICE_WEBHOOK_URL` | [ ] | |
-| C21 | `XERO_SALES_ACCOUNT_CODE` | [ ] | Default in code is `200` |
+| C17 | `TWILIO_ACCOUNT_SID` | [ ] | Voice company line |
+| C18 | `TWILIO_AUTH_TOKEN` | [ ] | Rotate if exposed |
+| C19 | `TWILIO_PHONE_NUMBER` | [ ] | e.g. `+441870470573` |
+| C20 | Twilio number voice webhook | [ ] | POST `https://seamvex.com/api/twilio/voice/inbound` |
+| C21 | Admin → Settings → voice routing | [ ] | Hours, after-hours mobile, ring group |
+| C22 | `XERO_SALES_ACCOUNT_CODE` | [ ] | Default in code is `200` |
 
 ---
 
@@ -94,6 +95,7 @@ Required by code in production (`lib/env.ts` + app). **None of these go in `.env
 | D4 | Documenso webhook URL: `https://seamvex.com/api/documenso/webhook` | [ ] | Header secret = `DOCUMENSO_WEBHOOK_SECRET` |
 | D5 | Cloud SQL instance exists and app can connect | [ ] | |
 | D6 | GCS bucket exists (region `europe-west1`) | [ ] | |
+| D7 | Twilio `+441870470573` voice webhook → `https://seamvex.com/api/twilio/voice/inbound` | [ ] | Rotate auth token if exposed |
 
 ---
 

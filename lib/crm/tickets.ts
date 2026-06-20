@@ -92,6 +92,17 @@ export async function getTicket(id: string): Promise<TicketRecord | null> {
   return row ? rowToTicket(row) : null
 }
 
+export async function getOpenTicketForContact(contactId: string): Promise<TicketRecord | null> {
+  await ensureDb()
+  const row = await queryOne<Record<string, unknown>>(
+    `SELECT * FROM tickets
+     WHERE contact_id = ? AND status IN ('open', 'pending')
+     ORDER BY updated_at DESC LIMIT 1`,
+    [contactId],
+  )
+  return row ? rowToTicket(row) : null
+}
+
 export async function createTicket(input: {
   contactId: string
   orderId?: string

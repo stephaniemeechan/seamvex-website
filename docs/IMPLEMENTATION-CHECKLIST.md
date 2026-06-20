@@ -36,7 +36,7 @@ Source plans: chat refinements (no cashflow, GDrive links, Twilio v1, retire leg
 | 28 | Gmail From `@seamvex.com` with display name | MUST | Implemented |
 | 29 | Gmail merge fields + ticket thread on send | MUST | Implemented |
 | 30 | Tickets + tasks scoping | MUST | Implemented |
-| 31 | Twilio SMS | MUST | Implemented |
+| 31 | Twilio voice (in/out) | MUST | Implemented |
 | 32 | Twilio click-to-call | MUST | Implemented |
 | 33 | No cashflow/overdue reporting | MUST | Implemented |
 | 34 | Xero DRAFT invoice on Documenso sign | MUST | Implemented |

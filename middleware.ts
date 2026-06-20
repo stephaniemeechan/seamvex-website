@@ -9,7 +9,10 @@ const PUBLIC_API_ROUTES = new Set([
   "/api/auth/google/callback",
   "/api/auth/login",
   "/api/documenso/webhook",
-  "/api/twilio/webhook",
+  "/api/twilio/voice/connect",
+  "/api/twilio/voice/inbound",
+  "/api/twilio/voice/no-answer",
+  "/api/twilio/voice/status",
   "/api/gmail/connect/callback",
   "/api/xero/callback",
 ])
