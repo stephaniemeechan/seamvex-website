@@ -17,6 +17,12 @@ export async function GET() {
 
   const state = crypto.randomUUID()
   const res = NextResponse.redirect(googleAuthorizeUrl(state))
-  res.cookies.set("google_oauth_state", state, { httpOnly: true, maxAge: 600, path: "/" })
+  res.cookies.set("google_oauth_state", state, {
+    httpOnly: true,
+    maxAge: 600,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  })
   return res
 }

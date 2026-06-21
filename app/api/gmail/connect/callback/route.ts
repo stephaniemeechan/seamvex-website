@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { googleOAuthClient } from "@/lib/auth/google"
 import { saveGmailRefreshToken } from "@/lib/gmail/client"
+import { publicUrl } from "@/lib/request-url"
 
 export const runtime = "nodejs"
 
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   const userId = request.headers.get("cookie")?.match(/gmail_oauth_user=([^;]+)/)?.[1]
 
   if (!code || !state || state !== cookieState || !userId) {
-    return NextResponse.redirect(new URL("/admin/settings?gmail=error", url.origin))
+    return NextResponse.redirect(publicUrl(request, "/admin/settings?gmail=error"))
   }
 
   const redirectUri =
@@ -26,11 +27,11 @@ export async function GET(request: Request) {
     if (!tokens.refresh_token) throw new Error("No refresh token returned")
     await saveGmailRefreshToken(userId, tokens.refresh_token)
 
-    const res = NextResponse.redirect(new URL("/admin/settings?gmail=connected", url.origin))
+    const res = NextResponse.redirect(publicUrl(request, "/admin/settings?gmail=connected"))
     res.cookies.delete("gmail_oauth_state")
     res.cookies.delete("gmail_oauth_user")
     return res
   } catch {
-    return NextResponse.redirect(new URL("/admin/settings?gmail=error", url.origin))
+    return NextResponse.redirect(publicUrl(request, "/admin/settings?gmail=error"))
   }
 }

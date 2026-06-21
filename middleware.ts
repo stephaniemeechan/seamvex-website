@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 import { verifySession, SESSION_COOKIE_NAME } from "@/lib/auth/session"
 import { legacySignAllowed } from "@/lib/env"
 import { clientIp, rateLimit } from "@/lib/auth/security"
+import { publicUrl } from "@/lib/request-url"
 
 const PUBLIC_API_ROUTES = new Set([
   "/api/auth/google",
@@ -68,11 +69,11 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value
   if (!token) {
-    return NextResponse.redirect(new URL("/admin/login", request.url))
+    return NextResponse.redirect(publicUrl(request, "/admin/login"))
   }
   const session = await verifySession(token)
   if (!session) {
-    return NextResponse.redirect(new URL("/admin/login", request.url))
+    return NextResponse.redirect(publicUrl(request, "/admin/login"))
   }
   return NextResponse.next()
 }

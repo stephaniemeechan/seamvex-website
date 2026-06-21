@@ -6,13 +6,14 @@ import {
   saveXeroTokens,
   setLockedTenantId,
 } from "@/lib/xero/client"
+import { publicUrl } from "@/lib/request-url"
 
 export const runtime = "nodejs"
 
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session || session.role !== "admin") {
-    return NextResponse.redirect(new URL("/admin/login", request.url))
+    return NextResponse.redirect(publicUrl(request, "/admin/login"))
   }
 
   const url = new URL(request.url)
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
   const oauthUser = cookieHeader.match(/xero_oauth_user=([^;]+)/)?.[1]
 
   if (!code || !state || state !== cookieState || oauthUser !== session.userId) {
-    return NextResponse.redirect(new URL("/admin/settings?xero=error", url.origin))
+    return NextResponse.redirect(publicUrl(request, "/admin/settings?xero=error"))
   }
 
   try {
@@ -39,11 +40,11 @@ export async function GET(request: Request) {
       tenant.tenantName,
     )
     await setLockedTenantId(tenant.tenantId)
-    const res = NextResponse.redirect(new URL("/admin/settings?xero=connected", url.origin))
+    const res = NextResponse.redirect(publicUrl(request, "/admin/settings?xero=connected"))
     res.cookies.delete("xero_oauth_state")
     res.cookies.delete("xero_oauth_user")
     return res
   } catch {
-    return NextResponse.redirect(new URL("/admin/settings?xero=error", url.origin))
+    return NextResponse.redirect(publicUrl(request, "/admin/settings?xero=error"))
   }
 }

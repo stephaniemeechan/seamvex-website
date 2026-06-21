@@ -2,13 +2,14 @@ import { NextResponse } from "next/server"
 import { exchangeGoogleCode } from "@/lib/auth/google"
 import { createSession, setSessionCookie } from "@/lib/auth/session"
 import { upsertGoogleUser } from "@/lib/crm/users"
+import { publicUrl } from "@/lib/request-url"
 
 export const runtime = "nodejs"
 
 const SEAMVEX_DOMAIN = "@seamvex.com"
 
-function loginError(origin: string, code: string) {
-  return NextResponse.redirect(new URL(`/admin/login?error=${code}`, origin))
+function loginError(request: Request, code: string) {
+  return NextResponse.redirect(publicUrl(request, `/admin/login?error=${code}`))
 }
 
 export async function GET(request: Request) {
@@ -18,13 +19,13 @@ export async function GET(request: Request) {
   const cookieState = request.headers.get("cookie")?.match(/google_oauth_state=([^;]+)/)?.[1]
 
   if (!code || !state || state !== cookieState) {
-    return loginError(url.origin, "oauth_state")
+    return loginError(request, "oauth_state")
   }
 
   try {
     const profile = await exchangeGoogleCode(code)
     if (!profile.email.endsWith(SEAMVEX_DOMAIN)) {
-      return loginError(url.origin, "domain")
+      return loginError(request, "domain")
     }
 
     const user = await upsertGoogleUser({
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
     })
 
     if (!user.active) {
-      return loginError(url.origin, "inactive")
+      return loginError(request, "inactive")
     }
 
     const token = await createSession({
@@ -45,10 +46,10 @@ export async function GET(request: Request) {
     })
     await setSessionCookie(token)
 
-    const res = NextResponse.redirect(new URL("/admin", url.origin))
+    const res = NextResponse.redirect(publicUrl(request, "/admin"))
     res.cookies.delete("google_oauth_state")
     return res
   } catch {
-    return loginError(url.origin, "oauth_failed")
+    return loginError(request, "oauth_failed")
   }
 }
