@@ -1,11 +1,17 @@
-# Cloud Run deploy for seamvex-website (europe-west1).
+# Cloud Run deploy for seamvex-website-2 (europe-west1).
 #
-# IMPORTANT — this file is used ONLY when the Cloud Build trigger is configured as:
+# Used when the Cloud Build trigger is configured as:
 #   Configuration: Cloud Build configuration file → /cloudbuild.yaml
+#   Region: europe-west1 · Service: seamvex-website-2
+#
 # Cloud Run "Connect repository" (Dockerfile-only) does NOT read this file.
-# If using Connect repository instead, set in the wizard:
-#   Region europe-west1 · Port 8080 · Allow unauthenticated · Ingress All
-# Do NOT create a second service in europe-west2.
+# It creates its own trigger and may deploy to a different service/region.
+#
+# After git push, run deploy/deploy-live.ps1 to update live seamvex-website-2.
+# Fix long-term: create a trigger that uses this file for seamvex-website-2 (see docs/DEPLOY.md).
+#
+# Cloud SQL is NOT attached by this deploy step. Run deploy/apply-prod-env.ps1 once
+# (or add --add-cloudsql-instances) so DATABASE_URL socket works.
 
 substitutions:
   _REGION: europe-west1

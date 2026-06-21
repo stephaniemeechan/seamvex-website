@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Build deploy/cloud-run-env.prod.yaml from template + .secrets OAuth JSON.
- * Output is gitignored — run before apply-prod-env.local.sh or apply-prod-env.ps1
+ * Output is gitignored — run before apply-prod-env.ps1 or apply-prod-env.sh
  *
  *   node deploy/generate-prod-env.mjs
  */
@@ -14,13 +14,39 @@ const root = path.join(__dirname, "..")
 const secretsDir = path.join(root, ".secrets")
 const outPath = path.join(__dirname, "cloud-run-env.prod.yaml")
 
-const SQL = "exalted-splicer-499401-e2:europe-west1:free-trial-first-project"
-
 function findOAuthJson() {
   if (!fs.existsSync(secretsDir)) return null
   const files = fs.readdirSync(secretsDir).filter((f) => f.startsWith("client_secret_") && f.endsWith(".json"))
   if (!files.length) return null
   return JSON.parse(fs.readFileSync(path.join(secretsDir, files[0]), "utf8"))
+}
+
+function loadEnvLocal() {
+  const envPath = path.join(root, ".env.local")
+  if (!fs.existsSync(envPath)) return {}
+  const out = {}
+  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith("#")) continue
+    const eq = trimmed.indexOf("=")
+    if (eq <= 0) continue
+    const key = trimmed.slice(0, eq).trim()
+    let val = trimmed.slice(eq + 1).trim()
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1)
+    }
+    out[key] = val
+  }
+  return out
+}
+
+function requireVar(name, local) {
+  const val = process.env[name] ?? local[name]
+  if (!val) {
+    console.error(`Missing ${name} — set in .env.local or export before running.`)
+    process.exit(1)
+  }
+  return val
 }
 
 const oauth = findOAuthJson()
@@ -29,14 +55,10 @@ if (!oauth?.web?.client_id || !oauth?.web?.client_secret) {
   process.exit(1)
 }
 
-// Values from go-live session (outstanding.md). Override via env when generating.
-const DATABASE_URL =
-  process.env.DATABASE_URL ??
-  `postgresql://postgres:cYoZk9Y%7E%7Ckvxy-%263@/seamvex_crm?host=/cloudsql/${SQL}`
-const SESSION_SECRET =
-  process.env.SESSION_SECRET ?? "a164dfc3bd27158d04f633a156423db600625df69f094e73ec942f6fafa14221"
-const DOCUMENSO_WEBHOOK_SECRET =
-  process.env.DOCUMENSO_WEBHOOK_SECRET ?? "7531ec5e7a8b2726e01f75fd963905fed125a85af3e0752c"
+const local = loadEnvLocal()
+const DATABASE_URL = requireVar("DATABASE_URL", local)
+const SESSION_SECRET = requireVar("SESSION_SECRET", local)
+const DOCUMENSO_WEBHOOK_SECRET = requireVar("DOCUMENSO_WEBHOOK_SECRET", local)
 
 const env = {
   SESSION_SECRET,

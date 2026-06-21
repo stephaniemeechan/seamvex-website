@@ -6,20 +6,20 @@ Work through this file **in order**. Mark each item when done.
 
 Do **not** commit `.env.local`. It stays on your machine only.
 
-## Production state (2026-06-20 audit)
+## Production state (2026-06-21)
 
 | Item | Status |
 |------|--------|
-| Cloud Run service **`seamvex-website-2`** (europe-west1, public) | **Live** — confirmed in GCP |
-| Domain mappings (`seamvex.com`, `www`, `seamcor.com`, `www`) | **Active** — HTTPS 200 on `seamvex.com` and `www.seamcor.com` |
-| `cloudbuild.yaml` deploy target | **`seamvex-website-2`** — correct in repo |
-| Cloud Run env (`PROD_REQUIRED` + Xero/Twilio) | **Not set** — Google OAuth 503; Documenso webhook 503 |
-| Documenso at `sign.seamvex.com` | **Not deployed** — host unreachable |
-| Orphan services `seamvex-website` (ew1 + ew2) | **Still exist** — delete after B8 green |
+| Cloud Run **`seamvex-website-2`** (europe-west1) | **Live** — rev `00020-crd` @ `9419bc9` |
+| Domain mappings | **Active** — HTTPS 200 |
+| Cloud Run env (12 vars) | **Applied** — OAuth 307, smoke 6/6 |
+| Cloud Build trigger | **Misconfigured** — push updates ew2 orphan only; use `deploy/deploy-live.ps1` |
+| Documenso at `sign.seamvex.com` | **Not deployed** |
+| Orphan `seamvex-website` (ew2) | **Deleted** 2026-06-21 — create ew1 trigger next |
+| Admin emails on Run | **Both** `s.meechan@seamvex.com`, `j.cyprus@seamvex.com` (verified on rev `00020-crd`) |
+| Admin login E2E | **Verify in browser** |
 
-Repo code on `origin/main` through **`020abc6`** is complete for go-live; remaining work is **manual GCP + external consoles** (sections C–E below).
-
-**2026-06-21:** Live revision `seamvex-website-2-00016-qgc` has only 3 env vars (missing `GOOGLE_CLIENT_SECRET` + 8 others). Apply all 12 via `node deploy/generate-prod-env.mjs` then `.\deploy\apply-prod-env.ps1` (or console deploy).
+**Deploy after push:** `.\deploy\deploy-live.ps1` then `pnpm go-live-smoke`. See [DEPLOY.md](./DEPLOY.md).
 
 ---
 
@@ -54,46 +54,54 @@ Repo code on `origin/main` through **`020abc6`** is complete for go-live; remain
 | B3 | Confirm staged: `public/logos/*.png` (all 3 required PNGs) | [x] | 3 PNGs committed in repo |
 | B4 | Confirm staged: `deploy/legal/` | [x] | 8 legal files committed |
 | B5 | Confirm staged: CRM code (`app/admin/`, `app/api/`, `lib/`, `middleware.ts`, etc.) | [x] | |
-| B6 | Commit | [x] | Latest: `4946376` (Gmail UX, smoke test, doc sync) |
-| B7 | Push to `main` | [x] | All commits through `4946376` on `origin/main` |
-| B8 | Cloud Build trigger runs and finishes green | [ ] | Confirm in GCP Console after latest push — must deploy **`seamvex-website-2`** |
+| B6 | Commit | [x] | Through `9419bc9` (OAuth redirect fix) |
+| B7 | Push to `main` | [x] | Latest: `9419bc9` on `origin/main` |
+| B8 | Live service updated after push | [!] | Push builds **ew2 orphan only** — run `deploy/deploy-live.ps1` after each push until trigger fixed |
 
 **Key repo commits (done — do not re-do):**
 
 | Commit | What |
 |--------|------|
-| `d1531a5` | `cloudbuild.yaml` → **`seamvex-website-2`**; signed-pdf GCS via `readOrderPdf()`; `PROD_REQUIRED` env gate |
-| `26a2c8f` | Go-live docs aligned; Xero import/sync fixes |
-| `df55a72` | `pnpm go-live-smoke` script + env template |
-| `caea067` | Gmail connection status, send preview, OAuth smoke check |
-| `4946376` | GET-READY session log + smoke notes |
+| `9419bc9` | OAuth redirects use public URL on Cloud Run (`lib/request-url.ts`) |
+| `0cf22c5` | `deploy/generate-prod-env.mjs`, env apply scripts |
+| `d1531a5` | `cloudbuild.yaml` → **`seamvex-website-2`**; `PROD_REQUIRED` env gate |
 
 ---
 
 ## C — Google Cloud Run env (`seamvex-website-2`, region `europe-west1`)
 
-Set each in **Cloud Run → seamvex-website-2 → Edit → Variables & secrets** (or Secret Manager references).
+Set via **Cloud Run → Variables & secrets** or `deploy/generate-prod-env.mjs` + `deploy/apply-prod-env.ps1`.
 
-Required by code in production (`lib/env.ts` `PROD_REQUIRED`). **None of these go in `.env.local` for prod.**
+### C-A — `PROD_REQUIRED` (10 vars, `lib/env.ts`)
 
-| # | Variable | Status | Where you get the value | Notes |
-|---|----------|--------|---------------------------|-------|
-| C1 | `SESSION_SECRET` | [ ] | Generate: long random string | Not `change-me-in-production` |
-| C2 | `GOOGLE_CLIENT_ID` | [ ] | Google Cloud Console → APIs & Services → Credentials | **Smoke 503** — not set on Run yet |
-| C3 | `GOOGLE_CLIENT_SECRET` | [ ] | Same OAuth client | **Smoke 503** — not set on Run yet |
-| C4 | `GOOGLE_REDIRECT_URI` | [ ] | Set to: `https://seamvex.com/api/auth/google/callback` | Must match OAuth client (D1) |
-| C5 | `DATABASE_URL` | [ ] | **Not in repo** — see below | Local: `docker compose postgres` only. Prod: create Cloud SQL or use existing instance |
-| C6 | `GCS_BUCKET` | [ ] | `seamvex-contracts-eu` | Cloud Run SA needs `storage.objectUser` — see [DEPLOY.md](./DEPLOY.md) |
-| C7 | `DOCUMENSO_API_KEY` | [ ] | Documenso admin | Blocked until D4 (`sign.seamvex.com` not deployed) |
-| C8 | `DOCUMENSO_WEBHOOK_SECRET` | [ ] | You choose; same value in Documenso webhook config | **Smoke 503** — not set; header `x-documenso-secret` |
-| C9 | `DOCUMENSO_API_URL` | [ ] | Set to: `https://sign.seamvex.com/api/v2` | Blocked until D4 |
-| C10 | `XERO_CLIENT_ID` | [ ] | https://developer.xero.com/app/manage | Needed for Xero connect + DRAFT invoices |
-| C11 | `XERO_CLIENT_SECRET` | [ ] | Same Xero app | |
-| C12 | `XERO_REDIRECT_URI` | [ ] | Set to: `https://seamvex.com/api/xero/callback` | Must match Xero app (D3) |
-| C13 | `NEXT_PUBLIC_APP_URL` | [ ] | Set to: `https://seamvex.com` | |
-| C14 | `ADMIN_EMAIL` | [ ] | Set to: `s.meechan@seamvex.com` | First matching user becomes admin |
-| C15 | Deploy new Cloud Run revision after env set | [ ] | `node deploy/generate-prod-env.mjs` → `.\deploy\apply-prod-env.ps1` or console **Deploy** | Live rev has 3/12 vars only |
-| C16 | Open `https://seamvex.com/admin/login` — Google sign-in works | [ ] | Blocked until C2–C4 + D1 | `/api/auth/google` must redirect (302), not 503 |
+| # | Variable | Status | Notes |
+|---|----------|--------|-------|
+| C1 | `SESSION_SECRET` | [x] | Applied rev `00019-nbr` |
+| C2 | `GOOGLE_CLIENT_ID` | [x] | Applied |
+| C3 | `GOOGLE_CLIENT_SECRET` | [x] | Applied |
+| C4 | `GOOGLE_REDIRECT_URI` | [x] | `https://seamvex.com/api/auth/google/callback` |
+| C5 | `DATABASE_URL` | [x] | Cloud SQL `seamvex_crm` — **connectivity verified at login E2E only** |
+| C6 | `GCS_BUCKET` | [x] | `seamvex-contracts-eu` — **IAM not verified** |
+| C7 | `DOCUMENSO_API_KEY` | [!] | `pending` until Documenso deployed |
+| C8 | `DOCUMENSO_WEBHOOK_SECRET` | [x] | Applied |
+| C9 | `DOCUMENSO_API_URL` | [x] | `https://sign.seamvex.com/api/v2` |
+| C10 | `NEXT_PUBLIC_APP_URL` | [x] | `https://seamvex.com` |
+
+### C-B — Also applied (12 total from generator)
+
+| # | Variable | Status | Notes |
+|---|----------|--------|-------|
+| C11 | `GMAIL_REDIRECT_URI` | [x] | `https://seamvex.com/api/gmail/connect/callback` |
+| C12 | `ADMIN_EMAIL` | [x] | `s.meechan@seamvex.com,j.cyprus@seamvex.com` |
+
+### C-C — Not on Run yet
+
+| # | Variable | Status | Notes |
+|---|----------|--------|-------|
+| C13 | `XERO_CLIENT_ID` | [ ] | See [XERO-SETUP.md](./XERO-SETUP.md) |
+| C14 | `XERO_CLIENT_SECRET` | [ ] | |
+| C15 | `XERO_REDIRECT_URI` | [ ] | When Xero vars added |
+| C16 | Google sign-in E2E | [ ] | Browser test after `9419bc9` / rev `00020-crd` |
 
 **Do not set on Cloud Run:** `ADMIN_PASSWORD` (password login disabled in production).
 
@@ -114,15 +122,15 @@ Required by code in production (`lib/env.ts` `PROD_REQUIRED`). **None of these g
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| D1 | Google OAuth client: add redirect `https://seamvex.com/api/auth/google/callback` | [ ] | Keep `http://localhost:3000/api/auth/google/callback` if you use Google locally |
-| D2 | Google OAuth client: add Gmail redirect `https://seamvex.com/api/gmail/connect/callback` | [ ] | Keep `http://localhost:3000/api/gmail/connect/callback` for local |
+| D1 | Google OAuth client: redirect `https://seamvex.com/api/auth/google/callback` | [x] | In GCP Credentials |
+| D2 | Google OAuth client: Gmail redirect `https://seamvex.com/api/gmail/connect/callback` | [x] | In GCP Credentials |
 | D3 | Xero app: add redirect `https://seamvex.com/api/xero/callback` | [ ] | Keep `http://localhost:3000/api/xero/callback` for local |
-| D4 | Documenso service running at `sign.seamvex.com` | [ ] | See [e-sign.md](../e-sign.md) — **not deployed** (host unreachable 2026-06-20) |
+| D4 | Documenso service running at `sign.seamvex.com` | [ ] | See [e-sign.md](../e-sign.md) — **not deployed** (2026-06-21) |
 | D5 | Documenso webhook URL: `https://seamvex.com/api/documenso/webhook` | [ ] | Header **`x-documenso-secret`** = `DOCUMENSO_WEBHOOK_SECRET`; configure after D4 |
-| D6 | Cloud SQL instance exists and app can connect | [ ] | Set `DATABASE_URL` in C5 |
-| D7 | GCS bucket exists (region `europe-west1`) + Run SA has `storage.objectUser` | [ ] | See [DEPLOY.md](./DEPLOY.md) |
+| D6 | Cloud SQL connectivity from Run | [ ] | `DATABASE_URL` set in C5 — mark [x] after login E2E creates session in DB |
+| D7 | GCS bucket + Run SA `storage.objectUser` | [ ] | C6 sets var only — IAM unverified; see [DEPLOY.md](./DEPLOY.md) |
 | D8 | Twilio `+441870470573` voice webhook → `https://seamvex.com/api/twilio/voice/inbound` | [ ] | Twilio domain verify file passes smoke; voice webhook not verified |
-| D9 | Delete orphan Cloud Run services `seamvex-website` (ew1 + ew2) after B8 green | [ ] | Live service is **`seamvex-website-2`** only |
+| D9 | Create ew1 Cloud Build trigger + confirm orphan gone | [x] | Orphan + trigger **deleted** 2026-06-21 — **create trigger** per [DEPLOY.md](./DEPLOY.md) |
 
 ---
 
@@ -130,8 +138,8 @@ Required by code in production (`lib/env.ts` `PROD_REQUIRED`). **None of these g
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| E1 | Section B in `docs/XERO-SETUP.md` — connect Xero, sync contacts, test sign → DRAFT invoice | [ ] | Blocked until C10–C12, D3, and Google SSO (C2–C4) |
-| E2 | Connect Gmail per admin user in Settings | [ ] | Blocked until C2–C4, D2, and Google SSO working |
+| E1 | Section B in `docs/XERO-SETUP.md` — connect Xero, sync contacts, test sign → DRAFT invoice | [ ] | Blocked until C13–C15, D3, Documenso, login E2E |
+| E2 | Connect Gmail per admin user in Settings | [ ] | Blocked until login E2E + C11 |
 | E3 | `pnpm reset-crm-data --import-xero` when ready for greenfield | [ ] | Reads `organisations[].agreementSnapshots` from export; run only after E1 verified |
 
 ---
@@ -144,9 +152,11 @@ Run against production:
 pnpm go-live-smoke
 ```
 
-Checks: home 200, admin login 200, Twilio verify file, legacy `/sign` 404, Documenso webhook rejects unsigned POST (401 or 503), Google OAuth redirect (302 not 503).
+Checks: home 200, admin login 200, Twilio verify file, legacy `/sign` 404, Documenso webhook rejects unsigned POST (401), Google OAuth redirect (307 not 503).
 
-**Latest run (2026-06-20, `4946376` on `main`):**
+**Does not test:** Google login callback, DB writes, GCS uploads, Xero, Documenso signing.
+
+**Latest run (2026-06-21, `9419bc9` on `main`, rev `00020-crd`):**
 
 | Check | Result |
 |-------|--------|
@@ -154,20 +164,17 @@ Checks: home 200, admin login 200, Twilio verify file, legacy `/sign` 404, Docum
 | Admin login page | PASS 200 |
 | Twilio domain verify | PASS 200 |
 | Legacy sign blocked | PASS 404 |
-| Documenso webhook unsigned | PASS 503 (secret not set — expect 401 after C8) |
-| Google OAuth configured | **FAIL 503** — set C2–C4 on Cloud Run |
+| Documenso webhook unsigned | PASS 401 |
+| Google OAuth configured | PASS 307 |
 
-Manual E2E still required after env set: Google SSO, agreement send/sign, Gmail, Xero DRAFT, Twilio voice.
+Manual E2E still required: Google SSO login in browser, agreement send/sign, Gmail, Xero DRAFT, Twilio voice.
 
 ---
 
 ## Current session log
 
 ```
-Handoff 2026-06-21 → see outstanding.md (next: apply deploy/cloud-run-env.prod.yaml)
-GCP project: exalted-splicer-499401-e2
-Cloud SQL: free-trial-first-project / seamvex_crm CREATED
-Xero app: seamvex-portal (0/5 connections)
-Cloud Run env: NOT APPLIED — rev 00016-qgc has 3/12 vars (OAuth 503)
-Apply: node deploy/generate-prod-env.mjs && .\deploy\apply-prod-env.ps1
+2026-06-21: Env applied (12 vars, rev 00019). OAuth redirect fix deployed (9419bc9, rev 00020).
+Smoke 6/6. Deploy gap documented: push -> ew2 orphan only; use deploy/deploy-live.ps1.
+Next: browser login E2E, fix Cloud Build trigger, Documenso, Xero.
 ```

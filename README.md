@@ -87,7 +87,7 @@ Implementation: [`lib/env.ts`](lib/env.ts) — `legacySignAllowed()`, `passwordL
 
 Cloud Run service: **`seamvex-website-2`** (europe-west1). See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
-**Production today (2026-06-20):** Service and domain mappings are live; Cloud Run env vars are **not set**. `pnpm go-live-smoke` passes 5/6 — Google OAuth returns **503** until `GOOGLE_*` are configured. Documenso at `sign.seamvex.com` is **not deployed**.
+**Production today (2026-06-21):** Rev `00020-crd` @ `9419bc9`. Env applied (12 vars). `pnpm go-live-smoke` **6/6**. After `git push`, run `deploy/deploy-live.ps1` (trigger only updates ew2 orphan). Documenso at `sign.seamvex.com` is **not deployed**.
 
 **Required** — `lib/env.ts` `PROD_REQUIRED` (throws on first DB access if missing):
 
@@ -103,9 +103,10 @@ NEXT_PUBLIC_APP_URL=https://seamvex.com
 **Also set for full CRM** (not in `PROD_REQUIRED`):
 
 ```
+GMAIL_REDIRECT_URI=https://seamvex.com/api/gmail/connect/callback
 XERO_CLIENT_ID / XERO_CLIENT_SECRET / XERO_REDIRECT_URI
-ADMIN_EMAIL=s.meechan@seamvex.com
-TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_PHONE_NUMBER   # voice only; app starts without these
+ADMIN_EMAIL=s.meechan@seamvex.com,j.cyprus@seamvex.com
+TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_PHONE_NUMBER   # voice only
 ```
 
 Gmail send is per-user OAuth (Settings → Connect Gmail). Google OAuth client needs redirect `https://seamvex.com/api/gmail/connect/callback` (and localhost for dev).
@@ -170,24 +171,25 @@ App does **not** send from `@seamcor.com` in v1.
 
 ## Manual steps you still must do
 
-**Priority order** (see [`docs/GET-READY.md`](docs/GET-READY.md) for full checklist):
+**Priority order** (see [`docs/GET-READY.md`](docs/GET-READY.md)):
 
-1. **B8** — Confirm Cloud Build trigger green on latest `main` push
-2. **Cloud Run env** — [`docs/DEPLOY.md`](docs/DEPLOY.md): set all `PROD_REQUIRED` vars on **`seamvex-website-2`** (copy from [`deploy/cloud-run-env.template`](deploy/cloud-run-env.template))
-3. **Google OAuth** — SSO redirect + Gmail redirect in Google Cloud Console
-4. **Documenso CE** — [`e-sign.md`](e-sign.md): deploy on `sign.seamvex.com` (currently **not live**)
-5. **Cloud SQL + GCS IAM** — `DATABASE_URL`, bucket `seamvex-contracts-eu`, Run SA `storage.objectUser`
+1. **Login E2E** — [https://seamvex.com/admin/login](https://seamvex.com/admin/login) → Google SSO
+2. **Deploy after push** — `.\deploy\deploy-live.ps1` (push only updates ew2 orphan until trigger fixed)
+3. **Fix Cloud Build trigger** — use `/cloudbuild.yaml` → `seamvex-website-2` ew1; delete ew2 orphan
+4. **Documenso CE** — [`e-sign.md`](e-sign.md): deploy on `sign.seamvex.com`
+5. **GCS IAM** — bucket `seamvex-contracts-eu`, Run SA `storage.objectUser`
 6. **Xero** — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md): connect org, sync, test sign → DRAFT invoice
-7. **Twilio Console** — voice webhook → `POST https://seamvex.com/api/twilio/voice/inbound`; routing in `/admin/settings`
-8. **Gmail** — each admin connects in Settings (per-user OAuth)
+7. **Twilio** — voice webhook + routing in `/admin/settings`
+8. **Gmail** — each admin connects in Settings
 9. **Greenfield** (when ready): `pnpm reset-crm-data --import-xero`
-10. **Cleanup** — delete orphan Cloud Run services `seamvex-website` (europe-west1 + europe-west2)
 
 ---
 
 ## Known limitations (facts)
 
-- **Production env not set (2026-06-20)** — `pnpm go-live-smoke` fails Google OAuth check (503). Documenso webhook also 503 until `DOCUMENSO_WEBHOOK_SECRET` is set. Agreement send/sign blocked until Documenso service is deployed.
+- **Deploy trigger misconfigured** — `git push` updates ew2 orphan only; run `deploy/deploy-live.ps1` after push. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
+- **Documenso not deployed** — agreement send/sign blocked until `sign.seamvex.com` is live and `DOCUMENSO_API_KEY` is set.
+- **Xero not connected in prod** — contacts/invoices need Xero vars on Run + org connect.
 - **Edge middleware** imports `crypto` via `lib/auth/security.ts` — build warns; works today but may need Edge-safe rate limit later.
 - **Standard users** cannot access the Resources page (admin only). Settings is open to all users (own phone + inbound toggle); voice routing, user phones, and resource links are admin-only sections.
 - **Documenso customer email** disabled via `distributionMethod: "NONE"` — verify once with real Documenso CE instance.

@@ -2,6 +2,8 @@
 
 Internal CRM and agreement admin for Seamvex Data Systems Ltd (trading as Seamcor).
 
+**Production:** [`seamvex-website-2`](../outstanding.md) · `europe-west1` · domains on `seamvex.com` / `seamcor.com`. Deploy mechanics: [DEPLOY.md](./DEPLOY.md).
+
 ## Roles
 
 | Role | Contacts | Contracts/orders | Tickets | Tasks |
@@ -9,15 +11,15 @@ Internal CRM and agreement admin for Seamvex Data Systems Ltd (trading as Seamco
 | **Admin** | Full CRUD + Xero sync | Create, send, void | Full | All |
 | **Standard** | View all | View only | Create/manage | Own only |
 
-Sign in with Google Workspace **`@seamvex.com`** only. First user matching `ADMIN_EMAIL` becomes admin.
+Sign in with Google Workspace **`@seamvex.com`** only. Emails listed in `ADMIN_EMAIL` get **admin** on first sign-in; other `@seamvex.com` users get **standard** (`lib/crm/users.ts`).
 
-Production Google SSO requires Cloud Run env (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`) — see [GET-READY.md](./GET-READY.md) §C.
+Production Google SSO requires Cloud Run env (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`) — applied 2026-06-21; see [GET-READY.md](./GET-READY.md) §C.
 
 ## Workflows
 
 ### Contacts
 
-- Sync from Xero: **Settings → Sync contacts** or `POST /api/xero/sync` (admin).
+- Sync from Xero: **Settings → Sync contacts** or `POST /api/xero/sync` (admin). **Blocked in prod until Xero connected** — see [XERO-SETUP.md](./XERO-SETUP.md).
 - **Active** = has a contract with rollout status `signed` or `live`.
 - **Inactive** = no such contract.
 - Per-contact: support info textarea, Google Drive attachment links (metadata only).
@@ -28,6 +30,8 @@ Production Google SSO requires Cloud Run env (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT
 2. **Generate contract** — PDF with legal lockup (`seamcor-legal.png`).
 3. **Send** — creates Documenso envelope (if configured), Gmail **cover note** (not the full Stephanie letter) with signing link, CRM ticket + tasks.
 4. **Sign** — customer signs via Documenso; webhook (`x-documenso-secret`) marks order signed, stores PDF in GCS (`gcs://…`) or local `data/pdfs/`, creates **DRAFT** Xero invoice.
+
+**Prod blockers today:** Documenso at `sign.seamvex.com` not deployed; `DOCUMENSO_API_KEY` is `pending` on Run.
 
 Legacy `/sign/[token]` remains for local development when Documenso is not configured (`NODE_ENV=development` only).
 
@@ -46,6 +50,7 @@ Legacy `/sign/[token]` remains for local development when Documenso is not confi
 - Inbound to company line (`TWILIO_PHONE_NUMBER`) simulrings users with **Receive inbound calls**; after-hours routes to on-call mobile.
 - Hours, greetings, ring group, and no-answer behaviour: **Admin → Settings** (`voice_config` in DB).
 - Twilio Console: **A call comes in** → `POST https://seamvex.com/api/twilio/voice/inbound`.
+- **`TWILIO_*` not on Run yet** — voice not live in prod.
 
 ### Tickets & tasks
 
@@ -75,7 +80,7 @@ Required files listed in `scripts/check-legal-bundle.ts`.
 - Invoice line items use order `lines_json`; account code from `XERO_SALES_ACCOUNT_CODE` (default `200`).
 - Invoices created as **DRAFT** for review in Xero.
 
-See [Xero org setup](#xero-org-setup-after-oauth) below.
+See [XERO-SETUP.md](./XERO-SETUP.md) for org setup after OAuth.
 
 ## Local development
 
@@ -95,14 +100,7 @@ pnpm reset-crm-data
 pnpm reset-crm-data --import-xero   # after export-xero-customers
 ```
 
-Production smoke (automated): `pnpm go-live-smoke` — see [GET-READY.md](./GET-READY.md).
-
-## Xero org setup (after OAuth)
-
-1. Connect in **Admin → Settings → Connect Xero**.
-2. Xero Developer app: add redirect URI for prod + localhost; scopes include contacts + transactions.
-3. In Xero UI: legal name Seamvex Data Systems Ltd; verify VAT; map Items to product SKUs; DRAFT invoice policy.
-4. **Sync contacts**; verify test order → send → sign → DRAFT invoice.
+Production smoke (automated): `pnpm go-live-smoke` — HTTP/route checks only; does **not** prove Google login E2E, DB writes, or GCS. See [GET-READY.md](./GET-READY.md).
 
 ## Domains
 

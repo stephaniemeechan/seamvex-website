@@ -2,7 +2,7 @@
 
 Service: **`seamvex-website-2`** · Region: **`europe-west1`**
 
-**Status (2026-06-20):** All four domain mappings are **Active** on `seamvex-website-2` (`seamvex.com`, `www.seamvex.com`, `seamcor.com`, `www.seamcor.com`). HTTPS returns 200 on production domains. DNS steps below are reference for verification or re-setup — do not change working records unless troubleshooting.
+**Status (2026-06-21):** All four domain mappings are **Active** on **`seamvex-website-2`** in **`europe-west1`** (`seamvex.com`, `www.seamvex.com`, `seamcor.com`, `www.seamcor.com`). HTTPS returns 200. Do not point domains at the ew2 orphan `seamvex-website`.
 
 ## 1. Google Cloud (do first)
 
