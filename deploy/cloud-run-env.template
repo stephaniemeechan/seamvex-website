@@ -18,7 +18,7 @@ NEXT_PUBLIC_APP_URL=https://seamvex.com
 XERO_CLIENT_ID=
 XERO_CLIENT_SECRET=
 XERO_REDIRECT_URI=https://seamvex.com/api/xero/callback
-ADMIN_EMAIL=s.meechan@seamvex.com
+ADMIN_EMAIL=s.meechan@seamvex.com,j.cyprus@seamvex.com
 GMAIL_REDIRECT_URI=https://seamvex.com/api/gmail/connect/callback
 
 # Optional

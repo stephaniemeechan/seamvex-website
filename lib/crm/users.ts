@@ -1,6 +1,7 @@
 import { execute, query, queryOne, ensureDb, newId } from "@/lib/db"
 import type { UserRole } from "@/lib/crm/contacts"
 import { isValidE164, normalizePhoneE164 } from "@/lib/phone/normalize"
+import { isAdminEmail } from "@/lib/auth/admin-emails"
 
 export type UserRecord = {
   id: string
@@ -74,7 +75,6 @@ export async function upsertGoogleUser(input: {
 }): Promise<UserRecord> {
   await ensureDb()
   const email = input.email.toLowerCase()
-  const adminEmail = (process.env.ADMIN_EMAIL ?? "s.meechan@seamvex.com").toLowerCase()
   const existing = await getUserByGoogleSub(input.googleSub)
   const now = new Date().toISOString()
 
@@ -85,6 +85,9 @@ export async function upsertGoogleUser(input: {
       now,
       existing.id,
     ])
+    if (isAdminEmail(email) && existing.role !== "admin") {
+      await setUserRole(existing.id, "admin")
+    }
     return (await getUserById(existing.id))!
   }
 
@@ -94,11 +97,14 @@ export async function upsertGoogleUser(input: {
       "UPDATE users SET google_sub = ?, name = ?, updated_at = ? WHERE id = ?",
       [input.googleSub, input.name ?? byEmail.name, now, byEmail.id],
     )
+    if (isAdminEmail(email) && byEmail.role !== "admin") {
+      await setUserRole(byEmail.id, "admin")
+    }
     return (await getUserById(byEmail.id))!
   }
 
   const id = newId("usr")
-  const role: UserRole = email === adminEmail ? "admin" : "standard"
+  const role: UserRole = isAdminEmail(email) ? "admin" : "standard"
   await execute(
     `INSERT INTO users (id, google_sub, email, name, phone, available_for_calls, role, active, created_at, updated_at)
      VALUES (?, ?, ?, ?, NULL, 0, ?, 1, ?, ?)`,

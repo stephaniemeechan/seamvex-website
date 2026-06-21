@@ -80,7 +80,7 @@ Required by code in production (`lib/env.ts` `PROD_REQUIRED`). **None of these g
 | C2 | `GOOGLE_CLIENT_ID` | [ ] | Google Cloud Console → APIs & Services → Credentials | **Smoke 503** — not set on Run yet |
 | C3 | `GOOGLE_CLIENT_SECRET` | [ ] | Same OAuth client | **Smoke 503** — not set on Run yet |
 | C4 | `GOOGLE_REDIRECT_URI` | [ ] | Set to: `https://seamvex.com/api/auth/google/callback` | Must match OAuth client (D1) |
-| C5 | `DATABASE_URL` | [ ] | Cloud SQL Postgres connection string | Required before any CRM DB route works |
+| C5 | `DATABASE_URL` | [ ] | **Not in repo** — see below | Local: `docker compose postgres` only. Prod: create Cloud SQL or use existing instance |
 | C6 | `GCS_BUCKET` | [ ] | `seamvex-contracts-eu` | Cloud Run SA needs `storage.objectUser` — see [DEPLOY.md](./DEPLOY.md) |
 | C7 | `DOCUMENSO_API_KEY` | [ ] | Documenso admin | Blocked until D4 (`sign.seamvex.com` not deployed) |
 | C8 | `DOCUMENSO_WEBHOOK_SECRET` | [ ] | You choose; same value in Documenso webhook config | **Smoke 503** — not set; header `x-documenso-secret` |
@@ -99,9 +99,9 @@ Required by code in production (`lib/env.ts` `PROD_REQUIRED`). **None of these g
 
 | # | Variable | Status | Notes |
 |---|----------|--------|-------|
-| C17 | `TWILIO_ACCOUNT_SID` | [ ] | Voice company line |
-| C18 | `TWILIO_AUTH_TOKEN` | [ ] | Rotate if exposed |
-| C19 | `TWILIO_PHONE_NUMBER` | [ ] | e.g. `+441870470573` |
+| C17 | `TWILIO_ACCOUNT_SID` | [ ] | in `.env.local` / Cloud Run | Recorded 2026-06-20 — Twilio Console Workbench |
+| C18 | `TWILIO_AUTH_TOKEN` | [ ] | Twilio Console → Show → copy | **Secret** — Cloud Run only, not git |
+| C19 | `TWILIO_PHONE_NUMBER` | [ ] | `+441870470573` | Friendly name: Seamvex Main · Scotland UK |
 | C20 | Twilio number voice webhook | [ ] | POST `https://seamvex.com/api/twilio/voice/inbound` |
 | C21 | Admin → Settings → voice routing | [ ] | Hours, after-hours mobile, ring group |
 | C22 | `XERO_SALES_ACCOUNT_CODE` | [ ] | Default in code is `200` |
@@ -162,8 +162,9 @@ Manual E2E still required after env set: Google SSO, agreement send/sign, Gmail,
 ## Current session log
 
 ```
-Audit: 2026-06-20 — repo through 4946376 on origin/main; code complete for go-live
-Next: B8 Cloud Build green → C1–C16 Cloud Run env → D1–D5 OAuth/Documenso → E1–E3 post-live
-Smoke: 5/6 pass — Google OAuth 503; Documenso webhook 503 (env not on seamvex-website-2)
-GCP: seamvex-website-2 live, 4 domain mappings active; sign.seamvex.com not deployed
+Handoff 2026-06-21 → see outstanding.md (next: gcloud Cloud Run env + GOOGLE OAuth)
+GCP project: exalted-splicer-499401-e2
+Cloud SQL: free-trial-first-project / seamvex_crm CREATED
+Xero app: seamvex-portal (0/5 connections)
+Cloud Run env: NOT APPLIED YET
 ```

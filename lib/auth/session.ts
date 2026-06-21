@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
+import { isAdminEmail } from "@/lib/auth/admin-emails"
 import { passwordLoginAllowed } from "@/lib/env"
 
 const COOKIE = "seamcor_admin_session"
@@ -97,10 +98,9 @@ export async function getSession(): Promise<Session | null> {
 export function checkAdminCredentials(email: string, password: string): boolean {
   if (!passwordLoginAllowed()) return false
   if (process.env.GOOGLE_CLIENT_ID) return false
-  const allowedEmail = (process.env.ADMIN_EMAIL ?? "s.meechan@seamvex.com").toLowerCase()
   const allowedPassword = process.env.ADMIN_PASSWORD
   if (!allowedPassword) return false
-  return email.toLowerCase() === allowedEmail && password === allowedPassword
+  return isAdminEmail(email) && password === allowedPassword
 }
 
 export { COOKIE as SESSION_COOKIE_NAME }

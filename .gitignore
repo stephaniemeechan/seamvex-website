@@ -28,6 +28,10 @@ xero-customers-export.json
 xero-customers-export.csv
 xero-customers-export.md
 
+# Cloud Run one-shot deploy script (secrets inside)
+deploy/*.local.sh
+.secrets/
+
 # IDE / OS
 Thumbs.db
 *.tsbuildinfo
