@@ -1,7 +1,7 @@
 # Go-live outstanding — START HERE (new chat)
 
 **Updated:** 2026-06-21  
-**Repo:** `main` @ `b00fe43` (code complete — no code blockers)  
+**Repo:** `main` @ `020abc6` (code complete — no code blockers)  
 **GCP project:** `exalted-splicer-499401-e2` (console: **My First Project**)  
 **Live service:** `seamvex-website-2` · `europe-west1` · public · 4 domain mappings active  
 **Secrets:** `.env.local` (gitignored) + `deploy/apply-prod-env.local.sh` (gitignored) — **never commit**
@@ -12,27 +12,25 @@
 
 ## NEXT ACTION (do this first in new chat)
 
-Run on **Cloud Shell** (GCP console → terminal icon) or local terminal if `gcloud` installed.
-
-Replace `REPLACE_ME` with OAuth **Client ID** and **Client secret** from  
-https://console.cloud.google.com/apis/credentials?project=exalted-splicer-499401-e2  
-(Web app · redirects: `https://seamvex.com/api/auth/google/callback` + `https://seamvex.com/api/gmail/connect/callback`)
-
-**PowerShell:** run as **two separate commands** (no `&&`).
+**Fastest path (recommended):** generate env file from `.secrets/` OAuth JSON, then apply in one command.
 
 ```powershell
-gcloud config set project exalted-splicer-499401-e2
+node deploy/generate-prod-env.mjs
+gcloud auth login
+.\deploy\apply-prod-env.ps1
 ```
 
-```powershell
-gcloud run services update seamvex-website-2 --region=europe-west1 --add-cloudsql-instances=exalted-splicer-499401-e2:europe-west1:free-trial-first-project --update-env-vars="DATABASE_URL=postgresql://postgres:cYoZk9Y%7E%7Ckvxy-%263@/seamvex_crm?host=/cloudsql/exalted-splicer-499401-e2:europe-west1:free-trial-first-project,SESSION_SECRET=a164dfc3bd27158d04f633a156423db600625df69f094e73ec942f6fafa14221,GOOGLE_REDIRECT_URI=https://seamvex.com/api/auth/google/callback,GMAIL_REDIRECT_URI=https://seamvex.com/api/gmail/connect/callback,NEXT_PUBLIC_APP_URL=https://seamvex.com,ADMIN_EMAIL=s.meechan@seamvex.com,j.cyprus@seamvex.com,GCS_BUCKET=seamvex-contracts-eu,DOCUMENSO_API_URL=https://sign.seamvex.com/api/v2,DOCUMENSO_API_KEY=pending,DOCUMENSO_WEBHOOK_SECRET=7531ec5e7a8b2726e01f75fd963905fed125a85af3e0752c,GOOGLE_CLIENT_ID=REPLACE_ME,GOOGLE_CLIENT_SECRET=REPLACE_ME"
-```
+Or on Cloud Shell / bash: `bash deploy/apply-prod-env.local.sh` (after uploading `deploy/cloud-run-env.prod.yaml`).
+
+**Do not use** `--update-env-vars=...ADMIN_EMAIL=a@x.com,j@y.com` — gcloud treats commas as delimiters and breaks `ADMIN_EMAIL`. Use `--env-vars-file` (scripts above).
+
+**Live revision check (2026-06-21):** `seamvex-website-2-00016-qgc` has only **3 vars** (`SESSION_SECRET`, truncated `DATABASE_URL`, `GOOGLE_CLIENT_ID`). Missing `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, and 7 others → OAuth **503**.
+
+**Console alternative:**  
+https://console.cloud.google.com/run/deploy/europe-west1/seamvex-website-2?project=exalted-splicer-499401-e2  
+→ **Variables & Secrets** — paste all 12 vars from `deploy/cloud-run-env.prod.yaml` (fix full `DATABASE_URL`) → **Deploy**
 
 Then: `https://seamvex.com/admin/login` → Google sign-in as `s.meechan@seamvex.com` → **admin auto-created**.
-
-Deploy page (manual alternative):  
-https://console.cloud.google.com/run/deploy/europe-west1/seamvex-website-2?project=exalted-splicer-499401-e2  
-→ **Connections** → `free-trial-first-project` → **Variables & Secrets** → **Deploy**
 
 **Git push does NOT wipe** Cloud Run env/SQL connection (`cloudbuild.yaml` only swaps image).
 
@@ -42,7 +40,7 @@ https://console.cloud.google.com/run/deploy/europe-west1/seamvex-website-2?proje
 
 | Item | Status |
 |------|--------|
-| Cloud Run target | `seamvex-website-2` only (orphan `seamvex-website` ew1+ew2 **deleted**) |
+| Cloud Run target | `seamvex-website-2` live (public); orphan `seamvex-website` ew1+ew2 **still exist** — delete after login works |
 | Cloud SQL instance | `free-trial-first-project` · PostgreSQL **18** · `europe-west1` · free trial 30d |
 | Database | **`seamvex_crm`** created |
 | Xero developer app | **`seamvex-portal`** (Web app) · company URL `https://seamvex.com` · **0/5 connections** |
@@ -106,7 +104,7 @@ Passwords, tokens, `SESSION_SECRET` → **`.env.local` only**.
 - **Proposals:** built in admin from **live Xero contacts**; not imported from SQLite.
 - **`reset-crm-data --import-xero`:** contacts only, not proposals — ask before running.
 - **Xero invoices:** free-text line descriptions; no Xero Item codes in code.
-- **Browser automation:** cannot complete GCP forms (iframe/overlays). Use Cloud Shell or manual console.
+- **Browser automation:** can fill non-secret URL vars in console; secrets + Deploy must be done by you (or `apply-prod-env.ps1` after `gcloud auth login`).
 
 ---
 

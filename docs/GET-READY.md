@@ -17,7 +17,9 @@ Do **not** commit `.env.local`. It stays on your machine only.
 | Documenso at `sign.seamvex.com` | **Not deployed** — host unreachable |
 | Orphan services `seamvex-website` (ew1 + ew2) | **Still exist** — delete after B8 green |
 
-Repo code on `origin/main` through **`4946376`** is complete for go-live; remaining work is **manual GCP + external consoles** (sections C–E below).
+Repo code on `origin/main` through **`020abc6`** is complete for go-live; remaining work is **manual GCP + external consoles** (sections C–E below).
+
+**2026-06-21:** Live revision `seamvex-website-2-00016-qgc` has only 3 env vars (missing `GOOGLE_CLIENT_SECRET` + 8 others). Apply all 12 via `node deploy/generate-prod-env.mjs` then `.\deploy\apply-prod-env.ps1` (or console deploy).
 
 ---
 
@@ -90,7 +92,7 @@ Required by code in production (`lib/env.ts` `PROD_REQUIRED`). **None of these g
 | C12 | `XERO_REDIRECT_URI` | [ ] | Set to: `https://seamvex.com/api/xero/callback` | Must match Xero app (D3) |
 | C13 | `NEXT_PUBLIC_APP_URL` | [ ] | Set to: `https://seamvex.com` | |
 | C14 | `ADMIN_EMAIL` | [ ] | Set to: `s.meechan@seamvex.com` | First matching user becomes admin |
-| C15 | Deploy new Cloud Run revision after env set | [ ] | Redeploy after all C1–C14 set | |
+| C15 | Deploy new Cloud Run revision after env set | [ ] | `node deploy/generate-prod-env.mjs` → `.\deploy\apply-prod-env.ps1` or console **Deploy** | Live rev has 3/12 vars only |
 | C16 | Open `https://seamvex.com/admin/login` — Google sign-in works | [ ] | Blocked until C2–C4 + D1 | `/api/auth/google` must redirect (302), not 503 |
 
 **Do not set on Cloud Run:** `ADMIN_PASSWORD` (password login disabled in production).
@@ -162,9 +164,10 @@ Manual E2E still required after env set: Google SSO, agreement send/sign, Gmail,
 ## Current session log
 
 ```
-Handoff 2026-06-21 → see outstanding.md (next: gcloud Cloud Run env + GOOGLE OAuth)
+Handoff 2026-06-21 → see outstanding.md (next: apply deploy/cloud-run-env.prod.yaml)
 GCP project: exalted-splicer-499401-e2
 Cloud SQL: free-trial-first-project / seamvex_crm CREATED
 Xero app: seamvex-portal (0/5 connections)
-Cloud Run env: NOT APPLIED YET
+Cloud Run env: NOT APPLIED — rev 00016-qgc has 3/12 vars (OAuth 503)
+Apply: node deploy/generate-prod-env.mjs && .\deploy\apply-prod-env.ps1
 ```
