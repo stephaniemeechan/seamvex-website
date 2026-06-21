@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/auth/session"
+import { getSession } from "@/lib/auth/get-session"
 import { getOrder } from "@/lib/proposals/orders"
 import { generateContractPdf } from "@/lib/proposals/pdf"
 

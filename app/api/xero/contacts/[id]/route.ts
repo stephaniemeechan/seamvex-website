@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/auth/session"
+import { getSession } from "@/lib/auth/get-session"
 import { fetchXeroContact, xeroContactToCustomerSnapshot } from "@/lib/xero/client"
 
 export const runtime = "nodejs"

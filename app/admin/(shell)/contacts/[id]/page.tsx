@@ -1,5 +1,5 @@
 import { ContactDetailClient } from "@/components/contact-detail-client"
-import { getSession } from "@/lib/auth/session"
+import { getSession } from "@/lib/auth/get-session"
 import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"

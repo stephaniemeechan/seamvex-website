@@ -2,7 +2,6 @@ import { SignJWT, jwtVerify } from "jose"
 import { cookies } from "next/headers"
 import { isAdminEmail } from "@/lib/auth/admin-emails"
 import { passwordLoginAllowed } from "@/lib/env"
-import { getUserById, setUserRole } from "@/lib/crm/users"
 
 const COOKIE = "seamcor_admin_session"
 const MAX_AGE = 60 * 60 * 24 * 7
@@ -92,24 +91,7 @@ export async function getSession(): Promise<Session | null> {
   const jar = await cookies()
   const token = jar.get(COOKIE)?.value
   if (!token) return null
-  const session = await verifySession(token)
-  if (!session) return null
-
-  const user = await getUserById(session.userId)
-  if (!user?.active) return null
-
-  let role = user.role
-  if (isAdminEmail(user.email) && role !== "admin") {
-    await setUserRole(user.id, "admin")
-    role = "admin"
-  }
-
-  return {
-    userId: user.id,
-    email: user.email,
-    role,
-    name: user.name ?? session.name,
-  }
+  return verifySession(token)
 }
 
 /** Dev-only password login when Google OAuth is not configured. */

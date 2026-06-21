@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { getSession, type Session } from "@/lib/auth/session"
+import { getSession, type Session } from "@/lib/auth/get-session"
 
-export type { Session } from "@/lib/auth/session"
+export type { Session } from "@/lib/auth/get-session"
 
 export async function requireSession(): Promise<Session | NextResponse> {
   const session = await getSession()

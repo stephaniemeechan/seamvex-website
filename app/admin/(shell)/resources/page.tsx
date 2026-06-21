@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { getSession } from "@/lib/auth/session"
+import { getSession } from "@/lib/auth/get-session"
 import { canManageContracts } from "@/lib/auth/rbac"
 import { getSetting } from "@/lib/db"
 

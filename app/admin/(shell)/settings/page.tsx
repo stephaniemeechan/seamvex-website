@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth/session"
+import { getSession } from "@/lib/auth/get-session"
 import { SettingsClient } from "@/components/settings-client"
 import { xeroConfig } from "@/lib/xero/client"
 import { hasGmailRefreshToken } from "@/lib/gmail/client"

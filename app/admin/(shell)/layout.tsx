@@ -1,6 +1,6 @@
 import { AdminHeader } from "@/components/admin-header"
 import { COMPANY } from "@/lib/brand"
-import { getSession } from "@/lib/auth/session"
+import { getSession } from "@/lib/auth/get-session"
 
 export default async function AdminShellLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession()

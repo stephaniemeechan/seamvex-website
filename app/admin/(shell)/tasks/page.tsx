@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/auth/session"
+import { getSession } from "@/lib/auth/get-session"
 import { TasksClient } from "@/components/tasks-client"
 import { redirect } from "next/navigation"
 

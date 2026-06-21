@@ -1,5 +1,5 @@
 import { OrderDetailClient } from "@/components/order-detail-client"
-import { getSession } from "@/lib/auth/session"
+import { getSession } from "@/lib/auth/get-session"
 import { canManageContracts } from "@/lib/auth/rbac"
 import { redirect } from "next/navigation"
 
