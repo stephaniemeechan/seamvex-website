@@ -16,6 +16,7 @@
 substitutions:
   _REGION: europe-west1
   _SERVICE: seamvex-website-2
+  _CLOUDSQL: exalted-splicer-499401-e2:europe-west1:free-trial-first-project
 
 steps:
   - name: gcr.io/cloud-builders/docker
@@ -54,6 +55,8 @@ steps:
       - "0"
       - --max-instances
       - "10"
+      - --add-cloudsql-instances
+      - ${_CLOUDSQL}
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/${_SERVICE}:$COMMIT_SHA

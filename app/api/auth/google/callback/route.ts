@@ -49,7 +49,17 @@ export async function GET(request: Request) {
     const res = NextResponse.redirect(publicUrl(request, "/admin"))
     res.cookies.delete("google_oauth_state")
     return res
-  } catch {
-    return loginError(request, "oauth_failed")
+  } catch (err) {
+    console.error("Google OAuth callback failed:", err)
+    const msg = err instanceof Error ? err.message.toLowerCase() : ""
+    const code =
+      msg.includes("connect") ||
+      msg.includes("econnrefused") ||
+      msg.includes("password") ||
+      msg.includes("database") ||
+      msg.includes("cloud sql")
+        ? "oauth_db"
+        : "oauth_failed"
+    return loginError(request, code)
   }
 }

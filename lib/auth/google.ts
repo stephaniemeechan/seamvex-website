@@ -26,6 +26,7 @@ export function googleOAuthClient(): OAuth2Client | null {
   return new OAuth2Client(cfg.clientId, cfg.clientSecret, cfg.redirectUri)
 }
 
+export const GOOGLE_LOGIN_SCOPES = [...BASE_SCOPES]
 export const GOOGLE_SCOPES = [...BASE_SCOPES, ...OPTIONAL_SCOPES]
 
 export function googleAuthorizeUrl(state: string): string {
@@ -33,9 +34,9 @@ export function googleAuthorizeUrl(state: string): string {
   if (!client) throw new Error("Google OAuth not configured")
   return client.generateAuthUrl({
     access_type: "offline",
-    scope: GOOGLE_SCOPES,
+    scope: GOOGLE_LOGIN_SCOPES,
     state,
-    prompt: "consent",
+    prompt: "select_account",
     include_granted_scopes: true,
   })
 }
@@ -51,7 +52,10 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleProfile> {
   const client = googleOAuthClient()
   if (!cfg || !client) throw new Error("Google OAuth not configured")
 
-  const { tokens } = await client.getToken(code)
+  const { tokens } = await client.getToken({
+    code,
+    redirect_uri: cfg.redirectUri,
+  })
   if (!tokens.id_token) throw new Error("Missing Google ID token")
 
   const ticket = await client.verifyIdToken({

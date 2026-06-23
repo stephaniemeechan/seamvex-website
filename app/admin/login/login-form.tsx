@@ -10,6 +10,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   domain: "Only @seamvex.com Google accounts can sign in.",
   inactive: "Your account is inactive. Contact an administrator.",
   oauth_failed: "Google sign-in failed. Please try again.",
+  oauth_db: "Signed in with Google but the app could not reach the database. Contact support or retry after Cloud SQL is verified.",
 }
 
 type Props = {
