@@ -1,6 +1,6 @@
-# Deploy seamvex-website-2 on every push to main.
-#
-# ONE-TIME SETUP: run deploy/setup-github-actions-deploy.ps1 (needs gcloud auth login + gh auth login)
+# Deploy seamvex-website-2 on push to main (after one-time browser setup).
+# See outstanding.md → "GitHub Actions setup (browser only)".
+# Set repo variable DEPLOY_ENABLED=true after adding secret GCP_SA_KEY.
 
 name: Deploy Cloud Run
 
@@ -15,8 +15,26 @@ concurrency:
 
 jobs:
   deploy:
+    # Skip silently on push until you finish browser setup (avoids red X on every commit)
+    if: github.event_name == 'workflow_dispatch' || vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
+      - name: Require GCP_SA_KEY secret
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          if [ -z "$GCP_SA_KEY" ]; then
+            echo "::error::Missing GitHub secret GCP_SA_KEY"
+            echo "Browser setup (no PowerShell):"
+            echo "  1. GCP service account + JSON key:"
+            echo "     https://console.cloud.google.com/iam-admin/serviceaccounts?project=exalted-splicer-499401-e2"
+            echo "  2. GitHub secret GCP_SA_KEY:"
+            echo "     https://github.com/stephaniemeechan/seamvex-website/settings/secrets/actions"
+            echo "  3. GitHub variable DEPLOY_ENABLED = true:"
+            echo "     https://github.com/stephaniemeechan/seamvex-website/settings/variables/actions"
+            exit 1
+          fi
+
       - uses: actions/checkout@v4
 
       - uses: google-github-actions/auth@v2
