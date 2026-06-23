@@ -17,9 +17,15 @@ cd C:\Seamvex-website
 gcloud builds submit --config=cloudbuild.yaml --project=exalted-splicer-499401-e2 --substitutions=COMMIT_SHA=8c3777b
 ```
 
-**Option B — auto-deploy on every future push (pick one, one-time):**
-1. **GitHub Actions:** repo Settings → Secrets → `GCP_SA_KEY` (service account JSON) → push runs `.github/workflows/deploy-cloud-run.yml`
-2. **Cloud Build trigger:** `.\deploy\setup-cloud-build-trigger.ps1` after `gcloud auth login`
+**Option B — auto-deploy on every future push (Option A — GitHub Actions):**
+```powershell
+gcloud auth login
+gh auth login
+.\deploy\setup-github-actions-deploy.ps1
+```
+Creates GCP SA, sets GitHub secret `GCP_SA_KEY`, then push (or Actions → Run workflow) deploys via `cloudbuild.yaml`.
+
+Alternative: `.\deploy\setup-cloud-build-trigger.ps1` (Cloud Build trigger, no GitHub secret).
 
 Then retry https://seamvex.com/admin/login
 

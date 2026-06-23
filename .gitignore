@@ -31,6 +31,7 @@ xero-customers-export.md
 # Cloud Run generated env (secrets inside)
 deploy/*.local.sh
 deploy/cloud-run-env.prod.yaml
+deploy/github-deploy-key.json
 .secrets/
 
 # IDE / OS
