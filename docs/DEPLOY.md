@@ -14,7 +14,9 @@ Live service with all four domain mappings (`seamvex.com`, `www.seamvex.com`, `s
 
 Orphan **`seamvex-website` (ew2) + its Cloud Build trigger deleted 2026-06-21.** A prior `git push` had redeployed the orphan because the trigger still existed.
 
-**No Cloud Build triggers remain** — create ew1 trigger from `/cloudbuild.yaml` (below).
+**Deploy path:** `git push main` → Cloud Build trigger → `/cloudbuild.yaml` → `seamvex-website-2` (ew1).
+
+Create the trigger once if missing — see below.
 
 **Live snapshot:** [`outstanding.md`](../outstanding.md) — rev, commit, smoke, env count.
 
@@ -28,18 +30,27 @@ Orphan **`seamvex-website` (ew2) + its Cloud Build trigger deleted 2026-06-21.**
 | Google OAuth | **307** → Google; callback → `seamvex.com` (not `0.0.0.0:8080`) |
 | Admin login E2E | **Verify in browser** — [https://seamvex.com/admin/login](https://seamvex.com/admin/login) |
 | `sign.seamvex.com` (Documenso) | **Not deployed** |
-| Cloud Build trigger | **None** — create ew1 trigger from `cloudbuild.yaml` |
+| Cloud Build trigger | **`deploy-seamvex-website-2-main`** — create once via script below |
 
-## Deploy gap (important)
+## Deploy trigger (one-time)
 
-**`git push origin main` does not deploy** (no triggers as of 2026-06-21).
+```powershell
+.\deploy\setup-cloud-build-trigger.ps1
+```
 
-### Create deploy trigger (required now)
+Or Cloud Shell:
 
-1. Cloud Build → **Create trigger** → GitHub `stephaniemeechan/seamvex-website` → branch `^main$`
-2. Configuration: **Cloud Build configuration file** → `/cloudbuild.yaml`
-3. Region: **europe-west1** (substitution `_SERVICE: seamvex-website-2` is in the file)
-4. Push once to verify; run `pnpm go-live-smoke`
+```bash
+gcloud config set project exalted-splicer-499401-e2
+gcloud builds triggers create github \
+  --name="deploy-seamvex-website-2-main" \
+  --repo-owner="stephaniemeechan" \
+  --repo-name="seamvex-website" \
+  --branch-pattern="^main$" \
+  --build-config="cloudbuild.yaml"
+```
+
+Then push to `main` and run `pnpm go-live-smoke`.
 
 One-time: ensure Cloud SQL attached via `deploy/apply-prod-env.ps1` if not already.
 
@@ -70,8 +81,9 @@ node deploy/generate-prod-env.mjs   # reads .secrets/ + .env.local → cloud-run
 | [`deploy/generate-prod-env.mjs`](../deploy/generate-prod-env.mjs) | Build gitignored YAML (12 vars) |
 | [`deploy/apply-prod-env.ps1`](../deploy/apply-prod-env.ps1) | Apply YAML + Cloud SQL (Windows) |
 | [`deploy/apply-prod-env.sh`](../deploy/apply-prod-env.sh) | Same (bash / Cloud Shell) |
-| [`deploy/deploy-live.ps1`](../deploy/deploy-live.ps1) | Deploy ew2-built image to live (workaround) |
-| [`deploy/deploy-live.sh`](../deploy/deploy-live.sh) | Same (bash) |
+| [`deploy/setup-cloud-build-trigger.ps1`](../deploy/setup-cloud-build-trigger.ps1) | One-time Cloud Build trigger on push to main |
+| [`deploy/deploy-live.ps1`](../deploy/deploy-live.ps1) | **Obsolete** — ew2 image workaround; do not use |
+| [`deploy/deploy-live.sh`](../deploy/deploy-live.sh) | **Obsolete** — same |
 
 **Do not use** `--update-env-vars=ADMIN_EMAIL=a@x.com,j@y.com` — gcloud splits on commas. Use `--env-vars-file`.
 
@@ -136,20 +148,13 @@ Register Gmail redirect on the same Google OAuth client as SSO.
 
 ## Options
 
-### A — Cloud Build trigger (recommended; not wired)
+### A — Cloud Build trigger (default)
 
-Trigger on `main` → `/cloudbuild.yaml` → **`seamvex-website-2`** · **europe-west1**.
+`git push main` → trigger `deploy-seamvex-website-2-main` → `/cloudbuild.yaml` → **`seamvex-website-2`** · **europe-west1**.
 
-### B — Manual deploy after push (current workaround)
+### B — Connect repository (avoid)
 
-```powershell
-git push origin main
-.\deploy\deploy-live.ps1
-```
-
-### C — Connect repository (avoid duplicate)
-
-If reconnecting GitHub: **europe-west1**, **`seamvex-website-2`**, port **8080**, public, ingress all. **Do not** create a second service in europe-west2.
+Cloud Run "Connect repository" ignores `cloudbuild.yaml` and may create a duplicate service in the wrong region. Use Cloud Build trigger (A) instead.
 
 ## After deploy
 
@@ -165,5 +170,5 @@ Deploy `seamvex-documenso` to `sign.seamvex.com`. See [e-sign.md](../e-sign.md).
 
 - Deploy without `deploy/legal/` (build fails `check-legal-bundle`)
 - Use SQLite on Cloud Run
-- Assume `git push` updates production without `deploy-live.ps1` (until trigger fixed)
-- Run `deploy-live.ps1` after ew1 `cloudbuild.yaml` trigger is fixed (wrong image registry)
+- Use `deploy-live.ps1` (obsolete ew2 image path)
+- Use Cloud Run "Connect repository" instead of Cloud Build trigger + `cloudbuild.yaml`

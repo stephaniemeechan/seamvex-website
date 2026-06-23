@@ -7,9 +7,7 @@
 # Cloud Run "Connect repository" (Dockerfile-only) does NOT read this file.
 # It creates its own trigger and may deploy to a different service/region.
 #
-# Git push deploys ONLY if Cloud Build trigger OR GitHub Actions secret is configured.
-# See .github/workflows/deploy-cloud-run.yml (needs GCP_SA_KEY secret once)
-# or run deploy/setup-cloud-build-trigger.ps1 once after gcloud auth login.
+# Git push deploys when Cloud Build trigger is configured (see deploy/setup-cloud-build-trigger.ps1).
 
 substitutions:
   _REGION: europe-west1

@@ -7,38 +7,34 @@
 
 ---
 
-## NEXT ACTION — GitHub Actions setup (browser only, no PowerShell)
+## NEXT ACTION — Cloud Build trigger + deploy
 
-**Red X on GitHub:** workflow failed at `google-github-actions/auth` because **`GCP_SA_KEY` secret is not set**. That is expected until you finish setup below.
+**Why push didn't deploy:** orphan ew2 trigger was deleted 2026-06-21; ew1 trigger not created yet.
 
-**Why push didn't deploy:** orphan Cloud Build trigger was deleted; GitHub Actions is the auto-deploy path once configured.
+**One-time setup** (GCP Cloud Shell or local `gcloud auth login`):
 
-### One-time setup (two browser tabs, ~5 min)
+```powershell
+.\deploy\setup-cloud-build-trigger.ps1
+```
 
-**Tab 1 — GCP** ([Service accounts](https://console.cloud.google.com/iam-admin/serviceaccounts?project=exalted-splicer-499401-e2)):
+Or in [Cloud Shell](https://console.cloud.google.com/cloudshell/open?project=exalted-splicer-499401-e2):
 
-1. **Create service account** → name: `github-deploy`
-2. **Grant roles** (project `exalted-splicer-499401-e2`):
-   - Cloud Build Editor
-   - Cloud Run Admin
-   - Service Account User
-   - Storage Admin (for Cloud Build bucket)
-3. **Keys** → Add key → JSON → download (keep private)
+```bash
+gcloud config set project exalted-splicer-499401-e2
+gcloud builds triggers create github \
+  --name="deploy-seamvex-website-2-main" \
+  --repo-owner="stephaniemeechan" \
+  --repo-name="seamvex-website" \
+  --branch-pattern="^main$" \
+  --build-config="cloudbuild.yaml" \
+  --description="Deploy seamvex-website-2 (ew1) on push to main"
+```
 
-**Tab 2 — GitHub**:
+Then `git push origin main` (or run trigger manually in Cloud Build console).
 
-4. [Secrets → Actions](https://github.com/stephaniemeechan/seamvex-website/settings/secrets/actions) → **New repository secret**
-   - Name: `GCP_SA_KEY`
-   - Value: paste **entire** JSON file contents
-5. [Variables → Actions](https://github.com/stephaniemeechan/seamvex-website/settings/variables/actions) → **New repository variable**
-   - Name: `DEPLOY_ENABLED`
-   - Value: `true`
+After green build, retry https://seamvex.com/admin/login — OAuth scopes should be `openid email profile` only (not Gmail).
 
-**Deploy now:** [Actions → Deploy Cloud Run → Run workflow](https://github.com/stephaniemeechan/seamvex-website/actions/workflows/deploy-cloud-run.yml) (branch `main`).
-
-After green run, retry https://seamvex.com/admin/login — OAuth scopes should be `openid email profile` only (not Gmail).
-
-**Optional (PowerShell):** `.\deploy\setup-github-actions-deploy.ps1` does the same if `gcloud auth login` + `gh auth login` work in your terminal — not required.
+**Do not use** Cloud Run "Connect repository" — it ignores `cloudbuild.yaml` and may deploy to the wrong service/region.
 
 ---
 
@@ -48,20 +44,15 @@ After green run, retry https://seamvex.com/admin/login — OAuth scopes should b
 |---------|--------|------|------|
 | **`seamvex-website-2`** | europe-west1 | Public | **Live** — only service (orphan deleted 2026-06-21) |
 
-**Orphan `seamvex-website` (ew2) was redeployed by `git push` @ `9419bc9`** because the Connect-repo trigger still existed. **Deleted:** trigger + service + **no triggers remain**. Next push will **not** auto-deploy until you create an ew1 trigger from `/cloudbuild.yaml` (see DEPLOY.md).
-
 ---
 
 ## Deploy workflow (read this)
 
 | Step | What happens |
 |------|----------------|
-| `git push origin main` | **No auto-deploy** until `GCP_SA_KEY` + `DEPLOY_ENABLED=true` (GitHub Actions) |
-| GitHub Actions `Deploy Cloud Run` | Runs `gcloud builds submit` → `seamvex-website-2` ew1 |
-| `.\deploy\deploy-live.ps1` | **Obsolete** once ew1 trigger exists; was workaround pulling ew2 image |
+| `git push origin main` | Cloud Build trigger → `cloudbuild.yaml` → `seamvex-website-2` ew1 |
+| `.\deploy\deploy-live.ps1` | **Obsolete** — do not use (ew2 image path) |
 | `node deploy/generate-prod-env.mjs` + `.\deploy\apply-prod-env.ps1` | Apply env vars (only when vars change; image deploy preserves them) |
-
-**Fix long-term:** create Cloud Build trigger using `/cloudbuild.yaml` → `seamvex-website-2` ew1; delete ew2 orphan trigger + service. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 **Do not use** `--update-env-vars=...ADMIN_EMAIL=a@x.com,j@y.com` — gcloud splits on commas. Use `--env-vars-file` (scripts above).
 
@@ -128,7 +119,7 @@ Passwords, tokens, `SESSION_SECRET` → **`.env.local` only**.
 - **Login:** Google `@seamvex.com` only in prod. No `ADMIN_PASSWORD` on Run.
 - **`data/proposals.db`:** local dev only. Prod uses Cloud SQL.
 - **Git push does NOT wipe env vars** — image-only deploy preserves them.
-- **Git push does NOT update live service today** — run `deploy-live.ps1` after push.
+- **Git push deploys** once Cloud Build trigger `deploy-seamvex-website-2-main` exists.
 
 ---
 
@@ -137,6 +128,6 @@ Passwords, tokens, `SESSION_SECRET` → **`.env.local` only**.
 | File | Purpose |
 |------|---------|
 | [`docs/GET-READY.md`](docs/GET-READY.md) | Full checklist |
-| [`docs/DEPLOY.md`](docs/DEPLOY.md) | Cloud Run deploy + trigger fix |
-| [`deploy/deploy-live.ps1`](deploy/deploy-live.ps1) | Push image to live after git push |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | Cloud Run deploy + trigger |
+| [`deploy/setup-cloud-build-trigger.ps1`](deploy/setup-cloud-build-trigger.ps1) | One-time Cloud Build trigger |
 | [`deploy/apply-prod-env.ps1`](deploy/apply-prod-env.ps1) | Apply env vars from generated YAML |
