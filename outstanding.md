@@ -1,20 +1,27 @@
 # Go-live outstanding — START HERE (new chat)
 
-**Updated:** 2026-06-21  
-**Repo:** `main` @ `9419bc9` (uncommitted doc/deploy script updates pending commit)  
-**GCP project:** `exalted-splicer-499401-e2` (console: **My First Project**)  
-**Live service:** `seamvex-website-2` · `europe-west1` · revision **`00020-crd`**  
-**Secrets:** `.env.local` + `.secrets/client_secret_*.json` → `deploy/cloud-run-env.prod.yaml` (gitignored)
-
-**Smoke last run:** `pnpm go-live-smoke` → **6/6 pass**
+**Updated:** 2026-06-23  
+**Repo:** `main` @ `8c3777b` (OAuth fix — **NOT on Cloud Run yet**)  
+**GCP project:** `exalted-splicer-499401-e2`  
+**Live service:** `seamvex-website-2` · still on old revision (Gmail scopes at login = not deployed)
 
 ---
 
-## NEXT ACTION
+## NEXT ACTION — deploy + auto-deploy (do this now)
 
-**Confirm admin login E2E:** [https://seamvex.com/admin/login](https://seamvex.com/admin/login) → Google as **`s.meechan@seamvex.com`** or **`j.cyprus@seamvex.com`** → both are admin (`ADMIN_EMAIL` on Run has both; code default matches).
+**Why push didn't deploy:** we deleted the orphan's trigger; nothing watches `main` for `seamvex-website-2`. Git push ≠ Cloud Run update.
 
-If login fails, note the exact URL/error.
+**Option A — one command (your PC, after `gcloud auth login`):**
+```powershell
+cd C:\Seamvex-website
+gcloud builds submit --config=cloudbuild.yaml --project=exalted-splicer-499401-e2 --substitutions=COMMIT_SHA=8c3777b
+```
+
+**Option B — auto-deploy on every future push (pick one, one-time):**
+1. **GitHub Actions:** repo Settings → Secrets → `GCP_SA_KEY` (service account JSON) → push runs `.github/workflows/deploy-cloud-run.yml`
+2. **Cloud Build trigger:** `.\deploy\setup-cloud-build-trigger.ps1` after `gcloud auth login`
+
+Then retry https://seamvex.com/admin/login
 
 ---
 

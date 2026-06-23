@@ -1,0 +1,39 @@
+# Deploy seamvex-website-2 on every push to main.
+#
+# ONE-TIME SETUP (repo owner, ~5 min):
+# 1. GCP Console → IAM → Service Accounts → Create "github-deploy"
+#    Roles: Cloud Build Editor, Cloud Run Admin, Service Account User,
+#           Storage Admin (for Cloud Build source bucket)
+# 2. Keys → Add key → JSON → copy contents
+# 3. GitHub repo → Settings → Secrets → Actions → New secret:
+#    Name: GCP_SA_KEY   Value: (paste JSON)
+# 4. Push to main — this workflow runs cloudbuild.yaml → seamvex-website-2 (ew1)
+
+name: Deploy Cloud Run
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-cloud-run
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Cloud Build deploy
+        run: |
+          gcloud builds submit \
+            --config=cloudbuild.yaml \
+            --project=exalted-splicer-499401-e2 \
+            --substitutions=COMMIT_SHA=${{ github.sha }}

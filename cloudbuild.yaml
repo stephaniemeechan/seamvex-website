@@ -7,11 +7,9 @@
 # Cloud Run "Connect repository" (Dockerfile-only) does NOT read this file.
 # It creates its own trigger and may deploy to a different service/region.
 #
-# After git push, run deploy/deploy-live.ps1 to update live seamvex-website-2.
-# Fix long-term: create a trigger that uses this file for seamvex-website-2 (see docs/DEPLOY.md).
-#
-# Cloud SQL is NOT attached by this deploy step. Run deploy/apply-prod-env.ps1 once
-# (or add --add-cloudsql-instances) so DATABASE_URL socket works.
+# Git push deploys ONLY if Cloud Build trigger OR GitHub Actions secret is configured.
+# See .github/workflows/deploy-cloud-run.yml (needs GCP_SA_KEY secret once)
+# or run deploy/setup-cloud-build-trigger.ps1 once after gcloud auth login.
 
 substitutions:
   _REGION: europe-west1
