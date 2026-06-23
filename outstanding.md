@@ -17,17 +17,16 @@
 .\deploy\setup-cloud-build-trigger.ps1
 ```
 
-Or in [Cloud Shell](https://console.cloud.google.com/cloudshell/open?project=exalted-splicer-499401-e2):
+Or deploy **right now** without a trigger (Cloud Shell):
 
 ```bash
-gcloud config set project exalted-splicer-499401-e2
-gcloud builds triggers create github \
-  --name="deploy-seamvex-website-2-main" \
-  --repo-owner="stephaniemeechan" \
-  --repo-name="seamvex-website" \
-  --branch-pattern="^main$" \
-  --build-config="cloudbuild.yaml" \
-  --description="Deploy seamvex-website-2 (ew1) on push to main"
+curl -sL https://raw.githubusercontent.com/stephaniemeechan/seamvex-website/main/deploy/cloud-shell-deploy-now.sh | bash
+```
+
+Or create trigger (connect GitHub first if this fails — script prints the link):
+
+```bash
+curl -sL https://raw.githubusercontent.com/stephaniemeechan/seamvex-website/main/deploy/cloud-shell-setup-cloud-build-trigger.sh | bash
 ```
 
 Then `git push origin main` (or run trigger manually in Cloud Build console).
