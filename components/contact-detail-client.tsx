@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { csrfFetch } from "@/lib/api-client"
+import { ContactPersonsEditor } from "@/components/contact-persons-editor"
+import { personDisplayName } from "@/lib/crm/contact-persons"
+import type { XeroContactPerson } from "@/lib/xero/types"
 
 type Contact = {
   id: string
@@ -20,6 +23,15 @@ type Contact = {
   country: string | null
   accountsContact: string | null
   accountsEmail: string | null
+  contactPersons: XeroContactPerson[]
+  xeroContactId?: string | null
+}
+
+type Ticket = {
+  id: string
+  subject: string
+  status: string
+  updatedAt: string
 }
 
 type Attachment = {
@@ -29,11 +41,22 @@ type Attachment = {
   createdAt: string
 }
 
-type Ticket = {
+type Agreement = {
   id: string
-  subject: string
+  documentNumber: string
   status: string
-  updatedAt: string
+  signedAt: string | null
+  xeroInvoiceId: string | null
+}
+
+type XeroAr = { outstanding?: number; overdue?: number }
+type XeroInvoiceRow = {
+  invoiceId: string
+  invoiceNumber?: string
+  status: string
+  amountDue?: number
+  amountPaid?: number
+  reference?: string
 }
 
 const DETAIL_FIELDS = [
@@ -79,6 +102,10 @@ export function ContactDetailClient({
   })
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [tickets, setTickets] = useState<Ticket[]>([])
+  const [agreements, setAgreements] = useState<Agreement[]>([])
+  const [xeroAr, setXeroAr] = useState<XeroAr | null>(null)
+  const [xeroInvoices, setXeroInvoices] = useState<XeroInvoiceRow[]>([])
+  const [contactPersons, setContactPersons] = useState<XeroContactPerson[]>([])
   const [supportInfo, setSupportInfo] = useState("")
   const [attachTitle, setAttachTitle] = useState("")
   const [attachUrl, setAttachUrl] = useState("")
@@ -91,6 +118,7 @@ export function ContactDetailClient({
   function applyContact(c: Contact) {
     setContact(c)
     setSupportInfo(c.supportInfo ?? "")
+    setContactPersons(c.contactPersons ?? [])
     setEditForm({
       companyName: c.companyName ?? "",
       contactName: c.contactName ?? "",
@@ -111,18 +139,25 @@ export function ContactDetailClient({
     setLoading(true)
     setError("")
     try {
-      const [contactRes, attachRes, ticketsRes] = await Promise.all([
+      const [contactRes, attachRes, ticketsRes, ordersRes, xeroRes] = await Promise.all([
         fetch(`/api/contacts/${id}`),
         fetch(`/api/contacts/${id}/attachments`),
         fetch(`/api/tickets?contactId=${id}`),
+        fetch(`/api/orders?contactId=${id}&status=signed`),
+        fetch(`/api/xero/invoices?contactId=${id}`),
       ])
       const contactData = await contactRes.json()
       const attachData = await attachRes.json()
       const ticketsData = await ticketsRes.json()
+      const ordersData = await ordersRes.json()
+      const xeroData = xeroRes.ok ? await xeroRes.json() : { invoices: [], ar: null }
       if (!contactRes.ok) throw new Error(contactData.error ?? "Contact not found")
       applyContact(contactData.contact)
       setAttachments(attachData.attachments ?? [])
       setTickets(ticketsData.tickets ?? [])
+      setAgreements(ordersData.orders ?? [])
+      setXeroAr(xeroData.ar ?? null)
+      setXeroInvoices(xeroData.invoices ?? [])
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load contact")
     } finally {
@@ -146,7 +181,7 @@ export function ContactDetailClient({
       const res = await csrfFetch(`/api/contacts/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, contactPersons }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed to save")
@@ -258,9 +293,19 @@ export function ContactDetailClient({
         <div className="rounded-xl border border-border p-4 space-y-4">
           <p className="text-sm font-medium text-primary">Contact details (saved to CRM + Xero)</p>
           <div className="grid gap-3 sm:grid-cols-2">
-            {DETAIL_FIELDS.map(([key, label]) => (
-              <label key={key} className={`text-sm ${key === "companyName" ? "sm:col-span-2" : ""}`}>
-                <span className="text-muted-foreground">{label}</span>
+            <label className="text-sm sm:col-span-2">
+              <span className="text-muted-foreground">Company name *</span>
+              <input
+                value={editForm.companyName}
+                onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
+                className="mt-1 block w-full rounded-md border border-border px-3 py-2 text-sm"
+              />
+            </label>
+            {DETAIL_FIELDS.filter(([key]) => key !== "companyName").map(([key, label]) => (
+              <label key={key} className="text-sm">
+                <span className="text-muted-foreground">
+                  {key === "contactName" ? "Primary person name" : key === "contactEmail" ? "Primary person email" : label}
+                </span>
                 <input
                   value={editForm[key]}
                   onChange={(e) => setEditForm({ ...editForm, [key]: e.target.value })}
@@ -269,6 +314,7 @@ export function ContactDetailClient({
               </label>
             ))}
           </div>
+          <ContactPersonsEditor persons={contactPersons} onChange={setContactPersons} />
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -297,11 +343,26 @@ export function ContactDetailClient({
             <dl className="mt-3 space-y-1 text-sm text-muted-foreground">
               {DETAIL_FIELDS.map(([key, label]) => (
                 <div key={key}>
-                  <dt className="inline font-medium text-foreground">{label}: </dt>
+                  <dt className="inline font-medium text-foreground">
+                    {key === "contactName" ? "Primary person" : key === "contactEmail" ? "Primary email" : label}:{" "}
+                  </dt>
                   <dd className="inline">{editForm[key] || "—"}</dd>
                 </div>
               ))}
             </dl>
+            {contactPersons.length > 0 && (
+              <div className="mt-4 border-t border-border pt-3">
+                <p className="text-sm font-medium text-foreground">Additional people</p>
+                <ul className="mt-2 space-y-1">
+                  {contactPersons.map((p, i) => (
+                    <li key={i} className="text-sm text-muted-foreground">
+                      {personDisplayName(p)}
+                      {p.emailAddress ? ` · ${p.emailAddress}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           <div className="rounded-xl border border-border p-4">
             <p className="text-sm font-medium text-primary">Company line</p>
@@ -395,6 +456,75 @@ export function ContactDetailClient({
             </button>
           </form>
         )}
+      </div>
+
+      {(xeroAr || xeroInvoices.length > 0) && (
+        <div className="rounded-xl border border-border p-4 space-y-3">
+          <p className="text-sm font-medium text-primary">Xero billing</p>
+          {xeroAr && (
+            <p className="text-sm text-muted-foreground">
+              Outstanding: £{xeroAr.outstanding?.toFixed(2) ?? "0.00"}
+              {xeroAr.overdue != null && xeroAr.overdue > 0 && (
+                <span className="text-red-700"> · Overdue: £{xeroAr.overdue.toFixed(2)}</span>
+              )}
+            </p>
+          )}
+          {xeroInvoices.length > 0 && (
+            <ul className="space-y-1 text-sm">
+              {xeroInvoices.slice(0, 10).map((inv) => (
+                <li key={inv.invoiceId} className="flex flex-wrap gap-2 justify-between border-b border-border/50 pb-1">
+                  <span>
+                    {inv.invoiceNumber ?? inv.reference ?? inv.invoiceId.slice(0, 8)} —{" "}
+                    <span className="capitalize">{inv.status.toLowerCase()}</span>
+                  </span>
+                  <span className="text-muted-foreground">
+                    {inv.amountDue != null && inv.amountDue > 0
+                      ? `Due £${inv.amountDue.toFixed(2)}`
+                      : inv.status === "PAID"
+                        ? "Paid"
+                        : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <div className="rounded-xl border border-border p-4">
+        <p className="text-sm font-medium text-primary">Signed agreements</p>
+        <ul className="mt-3 space-y-2 text-sm">
+          {agreements.length === 0 && (
+            <li className="text-muted-foreground">No signed agreements for this company.</li>
+          )}
+          {agreements.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2">
+              <div>
+                <Link href={`/admin/orders/${a.id}`} className="text-accent hover:underline">
+                  {a.documentNumber}
+                </Link>
+                {a.signedAt && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {new Date(a.signedAt).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <a
+                  href={`/api/orders/${a.id}/signed-pdf`}
+                  className="text-xs text-accent hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  PDF
+                </a>
+                {a.xeroInvoiceId && (
+                  <span className="text-xs text-muted-foreground">Invoice linked</span>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="rounded-xl border border-border p-4">

@@ -4,6 +4,7 @@ import type { OrderInput, OrderStatus, OrderLineInput, OrderType, RolloutStatus,
 import { execute, query, queryOne, newId, nextDocumentNumber, ensureDb } from "@/lib/db"
 import { parseIsoDate } from "@/lib/proposals/billing"
 import { upsertContactFromSnapshot, recomputeContactStatus } from "@/lib/crm/contacts"
+import type { ContactPersonRef, XeroContactPerson } from "@/lib/xero/types"
 
 export type CustomerSnapshot = {
   xeroContactId?: string
@@ -19,6 +20,10 @@ export type CustomerSnapshot = {
   contactEmail?: string
   accountsContact?: string
   accountsEmail?: string
+  /** Additional people (Xero ContactPersons[]). Primary is contactName/contactEmail. */
+  contactPersons?: XeroContactPerson[]
+  /** Person chosen for signing/comms on this order. */
+  selectedPersonRef?: ContactPersonRef
 }
 
 export type OrderRecord = {
@@ -281,6 +286,22 @@ export async function getOrderByDocumensoDocumentId(
     [documentId],
   )
   return row ? rowToOrder(row) : null
+}
+
+export async function listOrdersByContactId(
+  contactId: string,
+  opts?: { status?: OrderStatus },
+): Promise<OrderRecord[]> {
+  await ensureDb()
+  let sql = "SELECT * FROM orders WHERE contact_id = ?"
+  const params: unknown[] = [contactId]
+  if (opts?.status) {
+    sql += " AND status = ?"
+    params.push(opts.status)
+  }
+  sql += " ORDER BY signed_at DESC, created_at DESC"
+  const rows = await query<Record<string, unknown>>(sql, params)
+  return rows.map(rowToOrder)
 }
 
 export async function listOrders(): Promise<OrderRecord[]> {

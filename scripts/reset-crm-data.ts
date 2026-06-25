@@ -49,7 +49,7 @@ async function main() {
     const preflight = preflightImport(process.cwd(), csvPath)
     console.log(`Preflight: ${preflight.manifestRows.length} manifest rows → ${preflight.uniqueContacts} unique contacts`)
     if (preflight.duplicateOrgWarnings.length) {
-      console.log("Duplicate org (using Seamcor Limited):")
+      console.log("Duplicate org (resolved per company):")
       for (const w of preflight.duplicateOrgWarnings) console.log(`  - ${w}`)
     }
     if (preflight.unresolved.length) {

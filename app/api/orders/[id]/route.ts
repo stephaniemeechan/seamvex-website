@@ -29,7 +29,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const xeroId = body.xeroContactId ?? body.customer.xeroContactId
   if (xeroId) {
     const contact = await fetchXeroContact(xeroId)
-    if (contact) customer = xeroContactToCustomerSnapshot(contact)
+    if (contact) {
+      const selectedPersonRef = body.customer.selectedPersonRef
+      customer = xeroContactToCustomerSnapshot(contact)
+      if (selectedPersonRef !== undefined) {
+        customer = { ...customer, selectedPersonRef }
+      }
+    }
   }
 
   const input = buildOrderInput(body.order)

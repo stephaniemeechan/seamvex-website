@@ -11,6 +11,8 @@ import {
   setDocumensoInfo,
 } from "@/lib/proposals/orders"
 import { generateContractPdf } from "@/lib/proposals/pdf"
+import { resolvePersonFromSnapshot } from "@/lib/crm/contact-persons"
+import { contactPersonRefToStorage } from "@/lib/xero/types"
 
 export const runtime = "nodejs"
 
@@ -28,9 +30,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Order has no contact" }, { status: 400 })
   }
 
-  const recipientEmail = existing.customer.contactEmail ?? existing.customer.accountsEmail
-  const recipientName =
-    existing.customer.contactName ?? existing.customer.accountsContact ?? existing.customer.companyName
+  const person = resolvePersonFromSnapshot(
+    existing.customer,
+    existing.customer.selectedPersonRef ?? "primary",
+  )
+  const recipientEmail = person.email ?? existing.customer.accountsEmail
+  const recipientName = person.name || existing.customer.companyName
   if (!recipientEmail) {
     return NextResponse.json({ error: "Customer email is required to send" }, { status: 400 })
   }
@@ -78,6 +83,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { ticket } = await createAgreementSendTicket({
       contactId: existing.contactId,
       orderId: existing.id,
+      contactPersonRef: contactPersonRefToStorage(existing.customer.selectedPersonRef ?? "primary"),
       createdBy: session.userId,
       assigneeUserId: session.userId,
     })

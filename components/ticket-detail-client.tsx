@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { csrfFetch } from "@/lib/api-client"
+import { PersonRefSelect } from "@/components/contact-persons-editor"
+import { resolvePerson } from "@/lib/crm/contact-persons"
+import type { XeroContactPerson } from "@/lib/xero/types"
 
 type Ticket = {
   id: string
@@ -10,6 +13,8 @@ type Ticket = {
   subject: string
   status: string
   priority: string
+  contactPersonRef: string | null
+  assigneeUserId: string | null
 }
 
 type Activity = {
@@ -23,14 +28,21 @@ type Contact = {
   id: string
   companyName: string
   contactPhone: string | null
+  contactName: string | null
+  contactEmail: string | null
+  contactPersons: XeroContactPerson[]
 }
+
+type User = { id: string; name: string | null; email: string }
 
 const STATUSES = ["open", "pending", "resolved", "closed"] as const
 
-export function TicketDetailClient({ id }: { id: string }) {
+export function TicketDetailClient({ id, isAdmin }: { id: string; isAdmin: boolean }) {
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [contact, setContact] = useState<Contact | null>(null)
   const [activities, setActivities] = useState<Activity[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [personRef, setPersonRef] = useState("primary")
   const [note, setNote] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -45,15 +57,22 @@ export function TicketDetailClient({ id }: { id: string }) {
       const ticketData = await ticketRes.json()
       if (!ticketRes.ok) throw new Error(ticketData.error ?? "Ticket not found")
       setTicket(ticketData.ticket)
+      setPersonRef(ticketData.ticket.contactPersonRef ?? "")
 
-      const [activitiesRes, contactRes] = await Promise.all([
+      const fetches: Promise<Response>[] = [
         fetch(`/api/tickets/${id}/activities`),
         fetch(`/api/contacts/${ticketData.ticket.contactId}`),
-      ])
+      ]
+      if (isAdmin) fetches.push(fetch("/api/settings/users"))
+      const [activitiesRes, contactRes, usersRes] = await Promise.all(fetches)
       const activitiesData = await activitiesRes.json()
       const contactData = await contactRes.json()
       setActivities(activitiesData.activities ?? [])
       if (contactRes.ok) setContact(contactData.contact)
+      if (usersRes?.ok) {
+        const usersData = await usersRes.json()
+        setUsers(usersData.users ?? [])
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load ticket")
     } finally {
@@ -63,7 +82,7 @@ export function TicketDetailClient({ id }: { id: string }) {
 
   useEffect(() => {
     load()
-  }, [id])
+  }, [id, isAdmin])
 
   async function updateStatus(status: string) {
     setSaving(true)
@@ -78,6 +97,46 @@ export function TicketDetailClient({ id }: { id: string }) {
       setTicket(data.ticket)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to update status")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function savePersonRef(ref: string) {
+    setPersonRef(ref)
+    setSaving(true)
+    setError("")
+    try {
+      const res = await csrfFetch(`/api/tickets/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactPersonRef: ref === "" ? null : ref }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to update person")
+      setTicket(data.ticket)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update person")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function saveAssignee(assigneeUserId: string) {
+    if (!isAdmin) return
+    setSaving(true)
+    setError("")
+    try {
+      const res = await csrfFetch(`/api/tickets/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assigneeUserId: assigneeUserId || null }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to update assignee")
+      setTicket(data.ticket)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update assignee")
     } finally {
       setSaving(false)
     }
@@ -105,14 +164,15 @@ export function TicketDetailClient({ id }: { id: string }) {
   }
 
   async function clickToCall() {
-    if (!contact?.contactPhone) return
+    const phone = contact?.contactPhone
+    if (!phone) return
     setCalling(true)
     setError("")
     try {
       const res = await csrfFetch("/api/twilio/call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: contact.contactPhone, ticketId: id }),
+        body: JSON.stringify({ to: phone, ticketId: id }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed to initiate call")
@@ -123,6 +183,11 @@ export function TicketDetailClient({ id }: { id: string }) {
       setCalling(false)
     }
   }
+
+  const linkedPerson =
+    contact && ticket
+      ? resolvePerson(contact, ticket.contactPersonRef ?? "primary")
+      : null
 
   if (loading) return <p className="text-muted-foreground">Loading…</p>
   if (error && !ticket) return <p className="text-destructive">{error}</p>
@@ -142,6 +207,12 @@ export function TicketDetailClient({ id }: { id: string }) {
             </Link>
             {" · "}
             <span className="capitalize">{ticket.status}</span>
+            {linkedPerson?.name && (
+              <>
+                {" · "}
+                <span>{linkedPerson.name}</span>
+              </>
+            )}
           </p>
         )}
       </div>
@@ -165,6 +236,38 @@ export function TicketDetailClient({ id }: { id: string }) {
           </button>
         ))}
       </div>
+
+      {contact && (
+        <div className="rounded-xl border border-border p-4 space-y-2">
+          <p className="text-sm font-medium text-primary">Linked person</p>
+          <PersonRefSelect
+            contact={contact}
+            value={personRef}
+            onChange={savePersonRef}
+            disabled={saving}
+            allowEmpty
+          />
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="rounded-xl border border-border p-4 space-y-2">
+          <p className="text-sm font-medium text-primary">Assignee</p>
+          <select
+            value={ticket.assigneeUserId ?? ""}
+            disabled={saving}
+            onChange={(e) => saveAssignee(e.target.value)}
+            className="w-full max-w-md rounded-md border border-border px-3 py-2 text-sm"
+          >
+            <option value="">Unassigned</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name ?? u.email}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="rounded-xl border border-border p-4 space-y-4">
         <p className="text-sm font-medium text-primary">Activity feed</p>

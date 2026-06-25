@@ -6,6 +6,7 @@ export type TaskStatus = "open" | "done" | "cancelled"
 export type TicketRecord = {
   id: string
   contactId: string
+  contactPersonRef: string | null
   orderId: string | null
   subject: string
   status: TicketStatus
@@ -45,6 +46,7 @@ function rowToTicket(row: Record<string, unknown>): TicketRecord {
   return {
     id: row.id as string,
     contactId: row.contact_id as string,
+    contactPersonRef: (row.contact_person_ref as string | null) ?? null,
     orderId: (row.order_id as string | null) ?? null,
     subject: row.subject as string,
     status: row.status as TicketStatus,
@@ -105,6 +107,7 @@ export async function getOpenTicketForContact(contactId: string): Promise<Ticket
 
 export async function createTicket(input: {
   contactId: string
+  contactPersonRef?: string | null
   orderId?: string
   subject: string
   assigneeUserId?: string
@@ -114,11 +117,12 @@ export async function createTicket(input: {
   const id = newId("tkt")
   const now = new Date().toISOString()
   await execute(
-    `INSERT INTO tickets (id, contact_id, order_id, subject, status, priority, assignee_user_id, created_by, created_at, updated_at)
-     VALUES (?, ?, ?, ?, 'open', 'normal', ?, ?, ?, ?)`,
+    `INSERT INTO tickets (id, contact_id, contact_person_ref, order_id, subject, status, priority, assignee_user_id, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'open', 'normal', ?, ?, ?, ?)`,
     [
       id,
       input.contactId,
+      input.contactPersonRef ?? null,
       input.orderId ?? null,
       input.subject,
       input.assigneeUserId ?? null,
@@ -132,7 +136,9 @@ export async function createTicket(input: {
 
 export async function updateTicket(
   id: string,
-  patch: Partial<Pick<TicketRecord, "status" | "assigneeUserId" | "gmailThreadId" | "subject">>,
+  patch: Partial<
+    Pick<TicketRecord, "status" | "assigneeUserId" | "gmailThreadId" | "subject" | "contactPersonRef">
+  >,
 ): Promise<void> {
   await ensureDb()
   const fields: string[] = []
@@ -144,6 +150,10 @@ export async function updateTicket(
   if (patch.assigneeUserId !== undefined) {
     fields.push("assignee_user_id = ?")
     params.push(patch.assigneeUserId)
+  }
+  if (patch.contactPersonRef !== undefined) {
+    fields.push("contact_person_ref = ?")
+    params.push(patch.contactPersonRef)
   }
   if (patch.gmailThreadId !== undefined) {
     fields.push("gmail_thread_id = ?")
@@ -321,11 +331,13 @@ export async function listTicketActivities(ticketId: string): Promise<TicketActi
 export async function createAgreementSendTicket(input: {
   contactId: string
   orderId: string
+  contactPersonRef?: string | null
   createdBy?: string
   assigneeUserId?: string
 }): Promise<{ ticket: TicketRecord; tasks: TaskRecord[] }> {
   const ticket = await createTicket({
     contactId: input.contactId,
+    contactPersonRef: input.contactPersonRef ?? null,
     orderId: input.orderId,
     subject: "Agreement sent for signature",
     createdBy: input.createdBy,

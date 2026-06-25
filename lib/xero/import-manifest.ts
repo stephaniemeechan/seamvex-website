@@ -2,6 +2,7 @@ import fs from "fs"
 import path from "path"
 import type { CustomerSnapshot } from "@/lib/proposals/orders"
 import type { XeroCustomersExport } from "@/lib/xero/export-customers"
+import { xeroContactToCustomerSnapshot, type XeroContact } from "@/lib/xero/client"
 
 /** List names excluded from import (see excluded-companies.md). */
 export const EXCLUDED_LIST_NAMES = [
@@ -38,7 +39,6 @@ export const LIST_TO_XERO_NAME: Record<string, string> = {
   "Evolution Foods Ltd": "Evolution Foods Limited",
   "Holland & Barrett (Benelux)": "Holland & Barrett BV",
   "Elis UK": "Elis",
-  "Forthglade Foods Limited": "Forthglade Foods LImited",
   "Heck Foods": "Heck! Food Ltd",
   "Jennings Bakery Ltd": "Jennings Bakery",
   "FEI Foods Limited": "FEI Foods Ltd",
@@ -52,6 +52,21 @@ export const LIST_TO_XERO_NAME: Record<string, string> = {
 }
 
 export const PREFERRED_ORG = "Seamcor Limited"
+
+/** When the same companyName exists in both old orgs, use External for these (SA customers). */
+export const PREFERRED_ORG_BY_COMPANY: Record<string, string> = {
+  "adlam engineering (pty) ltd": "Seamcor External Profit Company",
+  afrigrit: "Seamcor External Profit Company",
+  "smart office connexion": "Seamcor External Profit Company",
+}
+
+export function preferredOrgForCompany(companyName: string): string {
+  return PREFERRED_ORG_BY_COMPANY[companyName.toLowerCase()] ?? PREFERRED_ORG
+}
+
+function orgPreferenceRank(companyName: string, org: string): number {
+  return org === preferredOrgForCompany(companyName) ? 1 : 0
+}
 
 export type ImportManifestRow = {
   listName: string
@@ -141,15 +156,22 @@ export function collectSnapshotsFromExport(data: XeroCustomersExport): SnapshotW
   const out: SnapshotWithOrg[] = []
   if (data.organisations?.length) {
     for (const org of data.organisations) {
-      for (const snap of org.agreementSnapshots ?? []) {
-        out.push({ snap, org: org.tenantName })
+      const contacts = org.contacts as XeroContact[] | undefined
+      if (contacts?.length) {
+        for (const raw of contacts) {
+          out.push({ snap: xeroContactToCustomerSnapshot(raw), org: org.tenantName })
+        }
+      } else {
+        for (const snap of org.agreementSnapshots ?? []) {
+          out.push({ snap, org: org.tenantName })
+        }
       }
     }
   }
   return out
 }
 
-/** Pick Seamcor Limited when the same companyName appears in multiple orgs. */
+/** When the same companyName appears in multiple orgs, pick per-company preferred org. */
 export function dedupeSnapshotsByCompany(
   items: SnapshotWithOrg[],
   allowed: Set<string>,
@@ -165,7 +187,8 @@ export function dedupeSnapshotsByCompany(
       continue
     }
     const preferNew =
-      item.org === PREFERRED_ORG && existing.org !== PREFERRED_ORG
+      orgPreferenceRank(item.snap.companyName, item.org) >
+      orgPreferenceRank(existing.snap.companyName, existing.org)
     if (preferNew) byName.set(key, item)
   }
   return [...byName.values()]
@@ -185,7 +208,10 @@ export function buildImportManifestFromList(rootDir = process.cwd()): ImportMani
     const existing = exportByName.get(key)
     if (!existing) {
       exportByName.set(key, org)
-    } else if (org === PREFERRED_ORG && existing !== PREFERRED_ORG) {
+    } else if (
+      orgPreferenceRank(snap.companyName, org) >
+      orgPreferenceRank(snap.companyName, existing)
+    ) {
       exportByName.set(key, org)
     }
   }
@@ -248,8 +274,10 @@ export function preflightImport(rootDir = process.cwd(), manifestPath?: string):
   }
   for (const [name, orgs] of namesInMultipleOrgs) {
     if (orgs.size > 1) {
+      const companyName =
+        manifestRows.find((r) => r.companyName.toLowerCase() === name)?.companyName ?? name
       duplicateOrgWarnings.push(
-        `${manifestRows.find((r) => r.companyName.toLowerCase() === name)?.companyName ?? name}: ${[...orgs].join(" + ")} (using ${PREFERRED_ORG})`,
+        `${companyName}: ${[...orgs].join(" + ")} (using ${preferredOrgForCompany(companyName)})`,
       )
     }
   }

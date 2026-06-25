@@ -318,7 +318,7 @@ export function SettingsClient({
         )}
         {!xeroReady ? (
           <p className="text-sm text-muted-foreground">{xeroNotConfiguredMessage()}</p>
-        ) : (
+        ) : isAdmin ? (
           <div className="flex flex-wrap gap-2">
             <a
               href="/api/xero/connect"
@@ -326,17 +326,17 @@ export function SettingsClient({
             >
               Connect Xero
             </a>
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={syncXeroContacts}
-                disabled={saving}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-              >
-                Sync contacts from Xero
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={syncXeroContacts}
+              disabled={saving}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              Sync contacts from Xero
+            </button>
           </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Xero connection is managed by admins.</p>
         )}
       </section>
 

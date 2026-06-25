@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { requireSessionApi, requireSessionMutation } from "@/lib/auth/api-guards"
 import { getTicket, updateTicket, type TicketStatus } from "@/lib/crm/tickets"
+import { getContact } from "@/lib/crm/contacts"
+import { validateContactPersonRef } from "@/lib/crm/contact-persons"
+import { contactPersonRefToStorage } from "@/lib/xero/types"
+import type { ContactPersonRef } from "@/lib/xero/types"
 
 export const runtime = "nodejs"
 
@@ -27,6 +31,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     assigneeUserId?: string | null
     subject?: string
     gmailThreadId?: string | null
+    contactPersonRef?: ContactPersonRef | string | null
+  }
+
+  if (body.assigneeUserId !== undefined && session.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const validStatuses: TicketStatus[] = ["open", "pending", "resolved", "closed"]
@@ -34,11 +43,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Invalid status" }, { status: 400 })
   }
 
+  let contactPersonRef: string | null | undefined
+  if (body.contactPersonRef !== undefined) {
+    contactPersonRef = contactPersonRefToStorage(
+      body.contactPersonRef === null ? null : (body.contactPersonRef as ContactPersonRef),
+    )
+    const contact = await getContact(existing.contactId)
+    if (!contact) return NextResponse.json({ error: "Contact not found" }, { status: 400 })
+    const personErr = validateContactPersonRef(contactPersonRef, contact)
+    if (personErr) return NextResponse.json({ error: personErr }, { status: 400 })
+  }
+
   await updateTicket(id, {
     status: body.status,
-    assigneeUserId: body.assigneeUserId,
+    assigneeUserId: session.role === "admin" ? body.assigneeUserId : undefined,
     subject: body.subject,
     gmailThreadId: body.gmailThreadId,
+    contactPersonRef,
   })
 
   const ticket = await getTicket(id)

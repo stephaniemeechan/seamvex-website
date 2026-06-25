@@ -21,7 +21,8 @@ Production only for go-live. Run after Google login E2E works and Xero vars are 
 
 - **Xero → CRM:** Settings → **Sync contacts from Xero** (`POST /api/xero/sync`)
 - **CRM → Xero:** Admin **New contact** / contact **Save** (`POST` / `PATCH /api/contacts/[id]`), or `pnpm push-contacts-to-xero` after import
-- **Invoices:** Documenso sign webhook → **DRAFT** invoice (free-text line descriptions; **not** Xero Item codes)
+- **Invoices:** Documenso sign webhook → **DRAFT** invoice (free-text line descriptions; **not** Xero Item codes). Portal **reads** invoice status/amount due on order and contact pages (`accounting.transactions.read`).
+- **Contact persons:** Primary on Xero header; up to 5 additional in `ContactPersons[]`. Import preserves full person lists from export JSON.
 
 ## 1. Connect OAuth
 
@@ -40,7 +41,7 @@ At https://developer.xero.com/app/manage — app **seamvex-portal**:
 | Type | Web app |
 | Company URL | `https://seamvex.com` |
 | Redirect URI (prod) | `https://seamvex.com/api/xero/callback` |
-| Scopes | openid, profile, email, offline_access, accounting.contacts, accounting.contacts.read, accounting.invoices, accounting.settings.read |
+| Scopes | openid, profile, email, offline_access, accounting.contacts, accounting.contacts.read, accounting.invoices, accounting.settings.read, accounting.transactions.read |
 
 Scopes are requested by code (`lib/xero/client.ts` `XERO_SCOPES`).
 

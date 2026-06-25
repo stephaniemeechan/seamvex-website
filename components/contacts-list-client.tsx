@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { csrfFetch } from "@/lib/api-client"
+import { ContactPersonsEditor } from "@/components/contact-persons-editor"
+import type { XeroContactPerson } from "@/lib/xero/types"
 
 type Contact = {
   id: string
@@ -38,6 +40,7 @@ export function ContactsListClient({ isAdmin }: { isAdmin: boolean }) {
   const [error, setError] = useState("")
   const [showNew, setShowNew] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [contactPersons, setContactPersons] = useState<XeroContactPerson[]>([])
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
 
@@ -77,12 +80,13 @@ export function ContactsListClient({ isAdmin }: { isAdmin: boolean }) {
       const res = await csrfFetch("/api/contacts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ...body, contactPersons }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed to create contact")
       setShowNew(false)
       setForm(EMPTY_FORM)
+      setContactPersons([])
       setMessage("Contact created and pushed to Xero.")
       router.push(`/admin/contacts/${data.contact.id}`)
     } catch (e) {
@@ -141,7 +145,9 @@ export function ContactsListClient({ isAdmin }: { isAdmin: boolean }) {
               ] as const
             ).map(([key, label]) => (
               <label key={key} className="text-sm">
-                <span className="text-muted-foreground">{label}</span>
+                <span className="text-muted-foreground">
+                  {key === "contactName" ? "Primary person name" : key === "contactEmail" ? "Primary person email" : label}
+                </span>
                 <input
                   value={form[key]}
                   onChange={(e) => setForm({ ...form, [key]: e.target.value })}
@@ -150,6 +156,7 @@ export function ContactsListClient({ isAdmin }: { isAdmin: boolean }) {
               </label>
             ))}
           </div>
+          <ContactPersonsEditor persons={contactPersons} onChange={setContactPersons} />
           <button
             type="submit"
             disabled={saving}

@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
 import { requireAdminMutation, requireSessionApi } from "@/lib/auth/api-guards"
-import { createContact, listContacts, type ContactStatus } from "@/lib/crm/contacts"
+import { createContact, listContacts, updateContactPersons } from "@/lib/crm/contacts"
 import type { CustomerSnapshot } from "@/lib/proposals/orders"
+import { validateContactPersons } from "@/lib/crm/contact-persons"
 import { createXeroContact, xeroConfig } from "@/lib/xero/client"
+import type { XeroContactPerson } from "@/lib/xero/types"
 
 export const runtime = "nodejs"
 
@@ -11,7 +13,7 @@ export async function GET(request: Request) {
   if (session instanceof NextResponse) return session
 
   const { searchParams } = new URL(request.url)
-  const status = searchParams.get("status") as ContactStatus | null
+  const status = searchParams.get("status") as "active" | "inactive" | null
   const q = searchParams.get("q") ?? undefined
 
   const contacts = await listContacts({
@@ -40,11 +42,15 @@ export async function POST(request: Request) {
     contactEmail?: string
     accountsContact?: string
     accountsEmail?: string
+    contactPersons?: XeroContactPerson[]
   }
 
   if (!body.companyName?.trim()) {
     return NextResponse.json({ error: "companyName is required" }, { status: 400 })
   }
+
+  const personsErr = validateContactPersons(body.contactPersons, body.contactEmail)
+  if (personsErr) return NextResponse.json({ error: personsErr }, { status: 400 })
 
   let xeroContactId = body.xeroContactId?.trim() || undefined
   if (!xeroContactId && xeroConfig()) {
@@ -61,6 +67,7 @@ export async function POST(request: Request) {
       contactEmail: body.contactEmail,
       accountsContact: body.accountsContact,
       accountsEmail: body.accountsEmail,
+      contactPersons: body.contactPersons,
     }
     try {
       const xc = await createXeroContact(snapshot)
@@ -86,6 +93,7 @@ export async function POST(request: Request) {
     contactEmail: body.contactEmail,
     accountsContact: body.accountsContact,
     accountsEmail: body.accountsEmail,
+    contactPersons: body.contactPersons,
   })
   return NextResponse.json({ contact })
 }

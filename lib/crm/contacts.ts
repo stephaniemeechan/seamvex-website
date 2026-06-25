@@ -1,6 +1,11 @@
 import { execute, query, queryOne, ensureDb, newId } from "@/lib/db"
 import type { CustomerSnapshot } from "@/lib/proposals/orders"
+import {
+  parseContactPersonsJson,
+  serializeContactPersons,
+} from "@/lib/crm/contact-persons"
 import { phonesMatch, normalizePhoneE164 } from "@/lib/phone/normalize"
+import type { XeroContactPerson } from "@/lib/xero/types"
 
 export type ContactStatus = "active" | "inactive"
 export type UserRole = "admin" | "standard"
@@ -22,6 +27,7 @@ export type ContactRecord = {
   contactEmail: string | null
   accountsContact: string | null
   accountsEmail: string | null
+  contactPersons: XeroContactPerson[]
   xeroSyncedAt: string | null
   createdAt: string
   updatedAt: string
@@ -45,6 +51,7 @@ function rowToContact(row: Record<string, unknown>): ContactRecord {
     contactEmail: (row.contact_email as string | null) ?? null,
     accountsContact: (row.accounts_contact as string | null) ?? null,
     accountsEmail: (row.accounts_email as string | null) ?? null,
+    contactPersons: parseContactPersonsJson(row.contact_persons_json as string | null),
     xeroSyncedAt: (row.xero_synced_at as string | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
@@ -66,6 +73,7 @@ export function snapshotToContactFields(s: CustomerSnapshot): Partial<ContactRec
     contactEmail: s.contactEmail ?? null,
     accountsContact: s.accountsContact ?? null,
     accountsEmail: s.accountsEmail ?? null,
+    contactPersons: s.contactPersons ?? [],
   }
 }
 
@@ -84,6 +92,7 @@ export function contactToSnapshot(c: ContactRecord): CustomerSnapshot {
     contactEmail: c.contactEmail ?? undefined,
     accountsContact: c.accountsContact ?? undefined,
     accountsEmail: c.accountsEmail ?? undefined,
+    contactPersons: c.contactPersons.length ? c.contactPersons : undefined,
   }
 }
 
@@ -125,12 +134,10 @@ export async function getContactByXeroId(xeroContactId: string): Promise<Contact
 
 export async function findContactByPhone(from: string): Promise<ContactRecord | null> {
   await ensureDb()
-  const rows = await query<Record<string, unknown>>(
-    "SELECT * FROM contacts WHERE contact_phone IS NOT NULL AND TRIM(contact_phone) != ''",
-  )
+  const rows = await query<Record<string, unknown>>("SELECT * FROM contacts")
   for (const row of rows) {
-    const phone = row.contact_phone as string
-    if (phonesMatch(from, phone)) return rowToContact(row)
+    const phone = row.contact_phone as string | null
+    if (phone?.trim() && phonesMatch(from, phone)) return rowToContact(row)
   }
   return null
 }
@@ -151,11 +158,16 @@ export async function upsertContactFromSnapshot(
     : null
 
   if (existing) {
+    const personsJson =
+      snapshot.contactPersons !== undefined
+        ? serializeContactPersons(snapshot.contactPersons)
+        : serializeContactPersons(existing.contactPersons)
     await execute(
       `UPDATE contacts SET
         company_name = ?, customer_number = ?, billing_address1 = ?, billing_address2 = ?,
         billing_address3 = ?, postcode = ?, country = ?, contact_name = ?, contact_phone = ?,
-        contact_email = ?, accounts_contact = ?, accounts_email = ?, xero_synced_at = ?,
+        contact_email = ?, accounts_contact = ?, accounts_email = ?, contact_persons_json = ?,
+        xero_synced_at = ?,
         support_info = COALESCE(?, support_info), updated_at = ?
       WHERE id = ?`,
       [
@@ -171,6 +183,7 @@ export async function upsertContactFromSnapshot(
         snapshot.contactEmail ?? null,
         snapshot.accountsContact ?? null,
         snapshot.accountsEmail ?? null,
+        personsJson,
         now,
         supportInfo ?? null,
         now,
@@ -187,8 +200,8 @@ export async function upsertContactFromSnapshot(
       id, xero_contact_id, company_name, status, support_info, customer_number,
       billing_address1, billing_address2, billing_address3, postcode, country,
       contact_name, contact_phone, contact_email, accounts_contact, accounts_email,
-      xero_synced_at, created_at, updated_at
-    ) VALUES (?, ?, ?, 'inactive', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      contact_persons_json, xero_synced_at, created_at, updated_at
+    ) VALUES (?, ?, ?, 'inactive', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       snapshot.xeroContactId ?? null,
@@ -205,6 +218,7 @@ export async function upsertContactFromSnapshot(
       snapshot.contactEmail ?? null,
       snapshot.accountsContact ?? null,
       snapshot.accountsEmail ?? null,
+      serializeContactPersons(snapshot.contactPersons),
       now,
       now,
       now,
@@ -271,6 +285,7 @@ export async function createContact(input: {
   contactEmail?: string
   accountsContact?: string
   accountsEmail?: string
+  contactPersons?: XeroContactPerson[]
 }): Promise<ContactRecord> {
   await ensureDb()
   const id = newId("ct")
@@ -280,8 +295,8 @@ export async function createContact(input: {
       id, xero_contact_id, company_name, status, support_info, customer_number,
       billing_address1, billing_address2, billing_address3, postcode, country,
       contact_name, contact_phone, contact_email, accounts_contact, accounts_email,
-      created_at, updated_at
-    ) VALUES (?, ?, ?, 'inactive', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      contact_persons_json, created_at, updated_at
+    ) VALUES (?, ?, ?, 'inactive', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.xeroContactId ?? null,
@@ -298,11 +313,24 @@ export async function createContact(input: {
       input.contactEmail ?? null,
       input.accountsContact ?? null,
       input.accountsEmail ?? null,
+      serializeContactPersons(input.contactPersons),
       now,
       now,
     ],
   )
   return (await getContact(id))!
+}
+
+export async function updateContactPersons(
+  id: string,
+  persons: XeroContactPerson[],
+): Promise<ContactRecord | null> {
+  await ensureDb()
+  await execute(
+    "UPDATE contacts SET contact_persons_json = ?, updated_at = ? WHERE id = ?",
+    [serializeContactPersons(persons), new Date().toISOString(), id],
+  )
+  return getContact(id)
 }
 
 export async function updateContact(

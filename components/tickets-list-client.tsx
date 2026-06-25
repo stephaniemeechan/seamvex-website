@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { csrfFetch } from "@/lib/api-client"
+import { PersonRefSelect } from "@/components/contact-persons-editor"
+import type { XeroContactPerson } from "@/lib/xero/types"
 
 type Ticket = {
   id: string
@@ -12,11 +14,15 @@ type Ticket = {
   status: string
   priority: string
   updatedAt: string
+  contactPersonRef: string | null
 }
 
 type Contact = {
   id: string
   companyName: string
+  contactName: string | null
+  contactEmail: string | null
+  contactPersons: XeroContactPerson[]
 }
 
 export function TicketsListClient() {
@@ -29,7 +35,10 @@ export function TicketsListClient() {
   const [showNew, setShowNew] = useState(false)
   const [newSubject, setNewSubject] = useState("")
   const [newContactId, setNewContactId] = useState(contactId)
+  const [newPersonRef, setNewPersonRef] = useState("primary")
   const [creating, setCreating] = useState(false)
+
+  const selectedContact = contacts.find((c) => c.id === newContactId)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -57,6 +66,10 @@ export function TicketsListClient() {
     load()
   }, [contactId, load])
 
+  useEffect(() => {
+    setNewPersonRef("primary")
+  }, [newContactId])
+
   async function createTicket(e: React.FormEvent) {
     e.preventDefault()
     if (!newSubject.trim() || !newContactId) return
@@ -65,7 +78,11 @@ export function TicketsListClient() {
       const res = await csrfFetch("/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: newSubject.trim(), contactId: newContactId }),
+        body: JSON.stringify({
+          subject: newSubject.trim(),
+          contactId: newContactId,
+          contactPersonRef: newPersonRef === "" ? null : newPersonRef,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed to create ticket")
@@ -112,6 +129,17 @@ export function TicketsListClient() {
               </option>
             ))}
           </select>
+          {selectedContact && (
+            <div>
+              <label className="text-sm font-medium">Linked person</label>
+              <PersonRefSelect
+                contact={selectedContact}
+                value={newPersonRef}
+                onChange={setNewPersonRef}
+                allowEmpty
+              />
+            </div>
+          )}
           <input
             type="text"
             placeholder="Subject"

@@ -6,6 +6,8 @@ import {
 import type { CustomerSnapshot, OrderRecord } from "@/lib/proposals/orders"
 import type { OrderInput, OrderTotals } from "@/lib/proposals/types"
 import { getCatalogueLabel } from "@/lib/proposals/catalogue"
+import { MAX_ADDITIONAL_CONTACT_PERSONS } from "@/lib/crm/contact-persons"
+import type { XeroContactPerson } from "@/lib/xero/types"
 
 const XERO_AUTH = "https://login.xero.com/identity/connect/authorize"
 const XERO_TOKEN = "https://identity.xero.com/connect/token"
@@ -19,6 +21,7 @@ export const XERO_SCOPES = [
   "accounting.contacts",
   "accounting.contacts.read",
   "accounting.invoices",
+  "accounting.transactions.read",
   "accounting.settings.read",
 ].join(" ")
 
@@ -60,6 +63,26 @@ export type XeroContact = {
     EmailAddress?: string
     IncludeInEmails?: boolean
   }[]
+  Balances?: {
+    AccountsReceivable?: { Outstanding?: number; Overdue?: number }
+    AccountsPayable?: { Outstanding?: number; Overdue?: number }
+  }
+}
+
+export type XeroInvoiceSummary = {
+  invoiceId: string
+  invoiceNumber?: string
+  status: string
+  total?: number
+  amountDue?: number
+  amountPaid?: number
+  dueDate?: string
+  reference?: string
+}
+
+export type XeroContactArSummary = {
+  outstanding?: number
+  overdue?: number
 }
 
 function billingAddress(contact: XeroContact): XeroAddress | undefined {
@@ -86,20 +109,65 @@ function personName(first?: string, last?: string): string {
   return `${first ?? ""} ${last ?? ""}`.trim()
 }
 
+function splitPrimaryName(full?: string): { firstName?: string; lastName?: string } {
+  if (!full?.trim()) return {}
+  const parts = full.trim().split(/\s+/)
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") || undefined }
+}
+
+function mapXeroContactPersons(
+  raw?: { FirstName?: string; LastName?: string; EmailAddress?: string; IncludeInEmails?: boolean }[],
+): XeroContactPerson[] {
+  if (!raw?.length) return []
+  return raw.slice(0, MAX_ADDITIONAL_CONTACT_PERSONS).map((p) => ({
+    firstName: p.FirstName,
+    lastName: p.LastName,
+    emailAddress: p.EmailAddress,
+    includeInEmails: p.IncludeInEmails ?? false,
+  }))
+}
+
+function mapToXeroContactPersons(persons: XeroContactPerson[] | undefined): Record<string, unknown>[] {
+  return (persons ?? []).slice(0, MAX_ADDITIONAL_CONTACT_PERSONS).map((p) => ({
+    FirstName: p.firstName,
+    LastName: p.lastName,
+    EmailAddress: p.emailAddress,
+    IncludeInEmails: p.includeInEmails ?? false,
+  }))
+}
+
+/** Normalize legacy Xero data: header primary + ContactPersons[] without duplicating primary in additional. */
+function normalizeXeroPeople(contact: XeroContact): {
+  primaryName?: string
+  primaryEmail?: string
+  additional: XeroContactPerson[]
+} {
+  const headerName = personName(contact.FirstName, contact.LastName)
+  const headerEmail = contact.EmailAddress?.trim()
+  const rawPersons = mapXeroContactPersons(contact.ContactPersons)
+
+  let primaryName = headerName || undefined
+  let primaryEmail = headerEmail || undefined
+  let additional = rawPersons
+
+  if (!primaryName && !primaryEmail && rawPersons.length) {
+    const pick =
+      rawPersons.find((p) => p.includeInEmails) ?? rawPersons[0]!
+    primaryName = personName(pick.firstName, pick.lastName) || pick.emailAddress
+    primaryEmail = pick.emailAddress ?? primaryEmail
+    additional = rawPersons.filter((p) => p !== pick)
+  }
+
+  return { primaryName, primaryEmail, additional }
+}
+
 /** Map Xero contact → agreement customer block (shared server + client preview). */
 export function xeroContactToCustomerSnapshot(contact: XeroContact): CustomerSnapshot {
   const addr = billingAddress(contact)
   const line2Parts = [addr?.AddressLine2, addr?.AddressLine3, addr?.AddressLine4].filter(Boolean)
   const line3Parts = [addr?.City, addr?.Region].filter(Boolean)
-
-  const person =
-    contact.ContactPersons?.find((p) => p.IncludeInEmails) ?? contact.ContactPersons?.[0]
-  const contactPersonName = person ? personName(person.FirstName, person.LastName) : ""
-  const contactLevelName = personName(contact.FirstName, contact.LastName)
+  const { primaryName, primaryEmail, additional } = normalizeXeroPeople(contact)
   const attention = addr?.AttentionTo?.trim()
-
-  const contactName = contactPersonName || contactLevelName || attention || undefined
-  const accountsContact = attention || contactPersonName || contactLevelName || undefined
 
   return {
     xeroContactId: contact.ContactID,
@@ -110,11 +178,13 @@ export function xeroContactToCustomerSnapshot(contact: XeroContact): CustomerSna
     billingAddress3: line3Parts.length ? line3Parts.join(", ") : undefined,
     postcode: addr?.PostalCode,
     country: addr?.Country ?? "United Kingdom",
-    contactName,
+    contactName: primaryName || attention || undefined,
     contactPhone: formatPhone(contact.Phones),
-    contactEmail: person?.EmailAddress ?? contact.EmailAddress,
-    accountsContact,
-    accountsEmail: contact.EmailAddress,
+    contactEmail: primaryEmail,
+    accountsContact: attention || primaryName || undefined,
+    accountsEmail: contact.EmailAddress ?? primaryEmail,
+    contactPersons: additional.length ? additional : undefined,
+    selectedPersonRef: "primary",
   }
 }
 
@@ -314,7 +384,9 @@ export async function fetchXeroContacts(): Promise<XeroContact[]> {
 export async function fetchXeroContact(id: string): Promise<XeroContact | null> {
   const auth = await getXeroAccessToken()
   if (!auth) throw new Error("Xero not connected")
-  const res = await fetch(`https://api.xero.com/api.xro/2.0/Contacts/${id}`, {
+  const res = await fetch(
+    `https://api.xero.com/api.xro/2.0/Contacts/${id}?includeBalances=true`,
+    {
     headers: {
       Authorization: `Bearer ${auth.token}`,
       "Xero-Tenant-Id": auth.tenantId,
@@ -345,6 +417,7 @@ function snapshotToXeroPayload(snapshot: CustomerSnapshot): Record<string, unkno
     phones.push({ PhoneType: "DEFAULT", PhoneNumber: snapshot.contactPhone })
   }
 
+  const primaryParts = splitPrimaryName(snapshot.contactName)
   const payload: Record<string, unknown> = {
     Name: snapshot.companyName,
     EmailAddress: snapshot.accountsEmail ?? snapshot.contactEmail,
@@ -353,21 +426,13 @@ function snapshotToXeroPayload(snapshot: CustomerSnapshot): Record<string, unkno
   }
   if (addresses.length) payload.Addresses = addresses
   if (phones.length) payload.Phones = phones
-  if (snapshot.contactName) {
-    const parts = snapshot.contactName.split(/\s+/)
-    payload.FirstName = parts[0]
-    payload.LastName = parts.slice(1).join(" ") || undefined
-  }
-  if (snapshot.contactEmail && snapshot.contactName) {
-    payload.ContactPersons = [
-      {
-        FirstName: snapshot.contactName.split(/\s+/)[0],
-        LastName: snapshot.contactName.split(/\s+/).slice(1).join(" ") || undefined,
-        EmailAddress: snapshot.contactEmail,
-        IncludeInEmails: true,
-      },
-    ]
-  }
+  if (primaryParts.firstName) payload.FirstName = primaryParts.firstName
+  if (primaryParts.lastName) payload.LastName = primaryParts.lastName
+  if (snapshot.contactEmail && !payload.EmailAddress) payload.EmailAddress = snapshot.contactEmail
+
+  const additional = mapToXeroContactPersons(snapshot.contactPersons)
+  if (additional.length) payload.ContactPersons = additional
+
   return payload
 }
 
@@ -476,4 +541,71 @@ export async function createDraftInvoice(order: OrderRecord): Promise<string> {
   const invoiceId = data.Invoices?.[0]?.InvoiceID
   if (!invoiceId) throw new Error("Xero create invoice returned no ID")
   return invoiceId
+}
+
+type XeroInvoiceRaw = {
+  InvoiceID: string
+  InvoiceNumber?: string
+  Status?: string
+  Total?: number
+  AmountDue?: number
+  AmountPaid?: number
+  DueDate?: string
+  Reference?: string
+}
+
+function mapInvoiceSummary(inv: XeroInvoiceRaw): XeroInvoiceSummary {
+  return {
+    invoiceId: inv.InvoiceID,
+    invoiceNumber: inv.InvoiceNumber,
+    status: inv.Status ?? "UNKNOWN",
+    total: inv.Total,
+    amountDue: inv.AmountDue,
+    amountPaid: inv.AmountPaid,
+    dueDate: inv.DueDate,
+    reference: inv.Reference,
+  }
+}
+
+export async function fetchXeroInvoice(invoiceId: string): Promise<XeroInvoiceSummary | null> {
+  const res = await xeroApi(`Invoices/${encodeURIComponent(invoiceId)}`)
+  if (!res.ok) return null
+  const data = (await res.json()) as { Invoices?: XeroInvoiceRaw[] }
+  const inv = data.Invoices?.[0]
+  return inv ? mapInvoiceSummary(inv) : null
+}
+
+export async function fetchXeroInvoicesForContact(
+  xeroContactId: string,
+): Promise<XeroInvoiceSummary[]> {
+  const url = new URL("https://api.xero.com/api.xro/2.0/Invoices")
+  url.searchParams.set("ContactIDs", xeroContactId)
+  url.searchParams.set("order", "Date DESC")
+
+  const auth = await getXeroAccessToken()
+  if (!auth) throw new Error("Xero not connected")
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${auth.token}`,
+      "Xero-Tenant-Id": auth.tenantId,
+      Accept: "application/json",
+    },
+  })
+  if (!res.ok) throw new Error(`Xero invoices list failed: ${await res.text()}`)
+  const data = (await res.json()) as { Invoices?: XeroInvoiceRaw[] }
+  return (data.Invoices ?? []).map(mapInvoiceSummary)
+}
+
+export async function fetchXeroContactAr(
+  xeroContactId: string,
+): Promise<XeroContactArSummary | null> {
+  const contact = await fetchXeroContact(xeroContactId)
+  if (!contact?.Balances?.AccountsReceivable) return null
+  const ar = contact.Balances.AccountsReceivable
+  return { outstanding: ar.Outstanding, overdue: ar.Overdue }
+}
+
+export function xeroInvoiceWebUrl(invoiceId: string): string {
+  return `https://go.xero.com/AccountsReceivable/View.aspx?InvoiceID=${encodeURIComponent(invoiceId)}`
 }

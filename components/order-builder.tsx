@@ -16,6 +16,8 @@ import type {
   SkuId,
 } from "@/lib/proposals/types"
 import type { CustomerSnapshot } from "@/lib/proposals/orders"
+import { PersonRefSelect } from "@/components/contact-persons-editor"
+import type { ContactPersonRef } from "@/lib/xero/types"
 
 type XeroContact = { ContactID: string; Name: string }
 
@@ -65,6 +67,7 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
   const [xeroConnected, setXeroConnected] = useState(false)
   const [contactsError, setContactsError] = useState("")
   const [selectedContactId, setSelectedContactId] = useState("")
+  const [selectedPersonRef, setSelectedPersonRef] = useState<string>("primary")
   const [xeroPreview, setXeroPreview] = useState<CustomerSnapshot | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [orderType, setOrderType] = useState<OrderType>("new")
@@ -169,6 +172,11 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
         } else {
           setXeroPreview(o.customer)
         }
+        setSelectedPersonRef(
+          o.customer.selectedPersonRef === undefined || o.customer.selectedPersonRef === null
+            ? "primary"
+            : String(o.customer.selectedPersonRef),
+        )
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load order"))
       .finally(() => setLoading(false))
@@ -265,16 +273,27 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
 
     const url = orderId ? `/api/orders/${orderId}` : "/api/orders"
     const method = orderId ? "PUT" : "POST"
+    const personRef =
+      selectedPersonRef === "primary"
+        ? ("primary" as ContactPersonRef)
+        : (Number(selectedPersonRef) as ContactPersonRef)
     const body =
       selectedContactId.length > 0
         ? {
             xeroContactId: selectedContactId,
-            customer:
-              xeroPreview ??
-              { companyName: contacts.find((c) => c.ContactID === selectedContactId)?.Name ?? "" },
+            selectedPersonRef: personRef,
+            customer: {
+              ...(xeroPreview ??
+                { companyName: contacts.find((c) => c.ContactID === selectedContactId)?.Name ?? "" }),
+              selectedPersonRef: personRef,
+            },
             order: orderPayload,
           }
-        : { customer: xeroPreview, order: orderPayload }
+        : {
+            customer: { ...xeroPreview, selectedPersonRef: personRef },
+            selectedPersonRef: personRef,
+            order: orderPayload,
+          }
 
     const res = await csrfFetch(url, {
       method,
@@ -328,7 +347,23 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
           {previewLoading && selectedContactId && (
             <p className="mt-2 text-sm text-muted-foreground">Loading customer details…</p>
           )}
-          {xeroPreview && !previewLoading && <CustomerPreview customer={xeroPreview} />}
+          {xeroPreview && !previewLoading && (
+            <>
+              <CustomerPreview customer={xeroPreview} />
+              <div className="mt-3">
+                <label className="text-sm font-medium">Signing / comms person</label>
+                <PersonRefSelect
+                  contact={{
+                    contactName: xeroPreview.contactName ?? null,
+                    contactEmail: xeroPreview.contactEmail ?? null,
+                    contactPersons: xeroPreview.contactPersons ?? [],
+                  }}
+                  value={selectedPersonRef}
+                  onChange={setSelectedPersonRef}
+                />
+              </div>
+            </>
+          )}
         </div>
       </section>
 

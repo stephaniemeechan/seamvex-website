@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { requireSessionApi, requireSessionMutation } from "@/lib/auth/api-guards"
 import { createTicket, listTickets } from "@/lib/crm/tickets"
 import { getContact } from "@/lib/crm/contacts"
+import { validateContactPersonRef } from "@/lib/crm/contact-persons"
+import { contactPersonRefToStorage } from "@/lib/xero/types"
+import type { ContactPersonRef } from "@/lib/xero/types"
 
 export const runtime = "nodejs"
 
@@ -22,6 +25,7 @@ export async function POST(request: Request) {
 
   const body = (await request.json()) as {
     contactId?: string
+    contactPersonRef?: ContactPersonRef | string | null
     orderId?: string
     subject?: string
     assigneeUserId?: string
@@ -37,11 +41,24 @@ export async function POST(request: Request) {
   const contact = await getContact(body.contactId)
   if (!contact) return NextResponse.json({ error: "Contact not found" }, { status: 400 })
 
+  const personRef = contactPersonRefToStorage(
+    body.contactPersonRef === undefined || body.contactPersonRef === null
+      ? null
+      : (body.contactPersonRef as ContactPersonRef),
+  )
+  const personErr = validateContactPersonRef(personRef, contact)
+  if (personErr) return NextResponse.json({ error: personErr }, { status: 400 })
+
+  if (body.assigneeUserId && session.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
   const ticket = await createTicket({
     contactId: body.contactId,
+    contactPersonRef: personRef,
     orderId: body.orderId,
     subject: body.subject.trim(),
-    assigneeUserId: body.assigneeUserId,
+    assigneeUserId: session.role === "admin" ? body.assigneeUserId : undefined,
     createdBy: session.userId,
   })
   return NextResponse.json({ ticket })

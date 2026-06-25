@@ -27,10 +27,19 @@ type Order = {
   deployment: string
   contractStart: string | null
   contractEnd: string | null
+  xeroInvoiceId: string | null
   lines: { input: OrderInput; calculated: { lines: OrderLineCalculated[]; orderTotal: number } }
 }
 
-export function OrderDetailClient({ id, canManageContracts = true }: { id: string; canManageContracts?: boolean }) {
+type InvoiceSummary = {
+  status: string
+  amountDue?: number
+  amountPaid?: number
+  invoiceNumber?: string
+  webUrl?: string
+}
+
+export function OrderDetailClient({ id, canManageContracts = false }: { id: string; canManageContracts?: boolean }) {
   const [order, setOrder] = useState<Order | null>(null)
   const [loadError, setLoadError] = useState("")
   const [loading, setLoading] = useState(true)
@@ -41,6 +50,11 @@ export function OrderDetailClient({ id, canManageContracts = true }: { id: strin
   const [emailSubject, setEmailSubject] = useState("")
   const [copied, setCopied] = useState("")
   const [actionError, setActionError] = useState("")
+  const [invoice, setInvoice] = useState<InvoiceSummary | null>(null)
+  const [manualSignFile, setManualSignFile] = useState<File | null>(null)
+  const [manualSignerName, setManualSignerName] = useState("")
+  const [manualCreateInvoice, setManualCreateInvoice] = useState(true)
+  const [manualSigning, setManualSigning] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -68,6 +82,19 @@ export function OrderDetailClient({ id, canManageContracts = true }: { id: strin
       })
       .catch(() => setCoverNote("Please sign the attached Seamcor software agreement."))
   }, [id])
+
+  useEffect(() => {
+    if (!order?.xeroInvoiceId) {
+      setInvoice(null)
+      return
+    }
+    fetch(`/api/xero/invoices/${order.xeroInvoiceId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.invoice) setInvoice({ ...d.invoice, webUrl: d.webUrl })
+      })
+      .catch(() => setInvoice(null))
+  }, [order?.xeroInvoiceId])
 
   useEffect(() => {
     if (!signUrl) return
@@ -98,6 +125,29 @@ export function OrderDetailClient({ id, canManageContracts = true }: { id: strin
       else if (data.gmailError)
         setActionError(`Sent for signature but Gmail failed: ${data.gmailError}`)
     } else setActionError(data.error ?? "Failed to send")
+  }
+
+  async function manualMarkSigned(e: React.FormEvent) {
+    e.preventDefault()
+    if (!manualSignFile || !manualSignerName.trim()) return
+    setManualSigning(true)
+    setActionError("")
+    try {
+      const fd = new FormData()
+      fd.set("file", manualSignFile)
+      fd.set("signerName", manualSignerName.trim())
+      fd.set("createXeroInvoice", manualCreateInvoice ? "true" : "false")
+      const res = await csrfFetch(`/api/orders/${id}/mark-signed`, { method: "POST", body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Manual sign failed")
+      setOrder(data.order)
+      setCopied("Agreement marked signed.")
+      setManualSignFile(null)
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "Manual sign failed")
+    } finally {
+      setManualSigning(false)
+    }
   }
 
   async function voidOrder() {
@@ -151,9 +201,73 @@ export function OrderDetailClient({ id, canManageContracts = true }: { id: strin
           <li className={isProposal ? "font-semibold text-primary" : ""}>Download proposal (pricing only)</li>
           <li className={isContract ? "font-semibold text-primary" : ""}>Generate contract (locks pricing)</li>
           <li className={isSent ? "font-semibold text-primary" : ""}>Send for signature</li>
-          <li className={order.status === "signed" ? "font-semibold text-primary" : ""}>Customer signs · invoice in Xero manually</li>
+          <li className={order.status === "signed" ? "font-semibold text-primary" : ""}>
+            Customer signs · DRAFT invoice in Xero (when configured)
+          </li>
         </ol>
       </div>
+
+      {order.xeroInvoiceId && (
+        <div className="rounded-xl border border-border p-4 text-sm">
+          <p className="font-medium text-primary">Xero invoice</p>
+          {invoice ? (
+            <p className="mt-2 text-muted-foreground">
+              {invoice.invoiceNumber ?? order.xeroInvoiceId.slice(0, 8)} —{" "}
+              <span className="capitalize">{invoice.status.toLowerCase()}</span>
+              {invoice.amountDue != null && invoice.amountDue > 0 && ` · Due £${invoice.amountDue.toFixed(2)}`}
+              {invoice.status === "PAID" && " · Paid"}
+              {invoice.webUrl && (
+                <>
+                  {" "}
+                  ·{" "}
+                  <a href={invoice.webUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+                    Open in Xero
+                  </a>
+                </>
+              )}
+            </p>
+          ) : (
+            <p className="mt-2 text-muted-foreground">Linked invoice ID: {order.xeroInvoiceId}</p>
+          )}
+        </div>
+      )}
+
+      {(isContract || isSent) && canManageContracts && (
+        <form onSubmit={manualMarkSigned} className="rounded-xl border border-border p-4 space-y-3">
+          <p className="text-sm font-medium text-primary">Manual sign (upload signed PDF)</p>
+          <p className="text-xs text-muted-foreground">
+            Use when the customer signed offline instead of Documenso.
+          </p>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setManualSignFile(e.target.files?.[0] ?? null)}
+            className="block text-sm"
+          />
+          <input
+            type="text"
+            placeholder="Signer name *"
+            value={manualSignerName}
+            onChange={(e) => setManualSignerName(e.target.value)}
+            className="w-full rounded-md border border-border px-3 py-2 text-sm"
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={manualCreateInvoice}
+              onChange={(e) => setManualCreateInvoice(e.target.checked)}
+            />
+            Create Xero DRAFT invoice (if not already linked)
+          </label>
+          <button
+            type="submit"
+            disabled={manualSigning || !manualSignFile || !manualSignerName.trim()}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          >
+            {manualSigning ? "Saving…" : "Upload & mark signed"}
+          </button>
+        </form>
+      )}
 
       <div className="flex flex-wrap gap-3">
         {(isProposal || order.status === "void") && (

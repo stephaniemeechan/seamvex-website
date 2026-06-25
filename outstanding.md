@@ -39,7 +39,7 @@ Then:
 
 Xero app: **seamvex-portal** (or replacement web app) · redirect `https://seamvex.com/api/xero/callback` only — no localhost.
 
-Scopes needed: `accounting.contacts`, `accounting.contacts.read`, `accounting.settings.read`, `accounting.invoices` (+ `offline_access` if offered).
+Scopes needed: `accounting.contacts`, `accounting.contacts.read`, `accounting.settings.read`, `accounting.invoices`, `accounting.transactions.read` (+ `offline_access` if offered). Re-connect Xero after deploy if scopes changed.
 
 ### Xero contacts — two-way sync (code facts)
 
@@ -54,6 +54,12 @@ Scopes needed: `accounting.contacts`, `accounting.contacts.read`, `accounting.se
 
 **Deploy path:** local dev → `git push main` → Cloud Build → **`seamvex-website-2`**. Import/push run against **prod Cloud SQL**, not local SQLite — no local DB as acceptance test.
 
+**Contact persons (Xero parity):** One CRM contact = one Xero company. Primary person on header fields; up to 5 additional people in `ContactPersons[]`. Tickets and orders can link a person ref. Admin-only create/edit; standard users read-only.
+
+**Invoice visibility:** Portal reads invoice status from Xero (`accounting.transactions.read`) on order detail and contact detail (AR + recent invoices). Re-connect OAuth after deploy if scope was added.
+
+**Manual sign:** Admin can upload signed PDF on order detail (alternative to Documenso) with optional DRAFT invoice creation.
+
 ---
 
 ## Do next — customer contacts (selective import)
@@ -62,7 +68,7 @@ Scopes needed: `accounting.contacts`, `accounting.contacts.read`, `accounting.se
 - Import **43 unique contacts** from [`list-of-companies.csv`](list-of-companies.csv) via [`xero-import-selected.csv`](xero-import-selected.csv).
 - **12 excluded** — see [`excluded-companies.md`](excluded-companies.md) (10 absent from export + Puratos Liverpool skipped + Gressingham Foods).
 - Westland Driffield + Ellesmere → one Xero contact (`Westland Horticulture Limited`).
-- Duplicate org rule: prefer **Seamcor Limited** when same company appears in both old orgs.
+- Duplicate org rule: prefer **Seamcor Limited** when the same company appears in both old orgs — **except** Adlam, Afrigrit, and Smart Office Connexion, which use **Seamcor External Profit Company**.
 - Old `xeroContactId` values are invalid in the new org; strip on import.
 
 **Preflight (no DB):**

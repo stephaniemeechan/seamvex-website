@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/auth/get-session"
+import { requireAdminApi } from "@/lib/auth/api-guards"
 import { fetchXeroContact, xeroContactToCustomerSnapshot } from "@/lib/xero/client"
 
 export const runtime = "nodejs"
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getSession()
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
   const { id } = await params
   try {
     const contact = await fetchXeroContact(id)

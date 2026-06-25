@@ -1,16 +1,26 @@
 import { NextResponse } from "next/server"
-import { requireSessionApi, requireAdminMutation, sanitizeOrdersForApi, sanitizeOrderForApi } from "@/lib/auth/api-guards"
-import { listOrders, createOrder, buildOrderInput } from "@/lib/proposals/orders"
+import { requireAdminMutation, requireSessionApi, sanitizeOrdersForApi, sanitizeOrderForApi } from "@/lib/auth/api-guards"
+import { listOrders, listOrdersByContactId, createOrder, buildOrderInput } from "@/lib/proposals/orders"
 import { fetchXeroContact, xeroContactToCustomerSnapshot } from "@/lib/xero/client"
-import type { OrderInput } from "@/lib/proposals/types"
+import type { OrderInput, OrderStatus } from "@/lib/proposals/types"
 import type { CustomerSnapshot } from "@/lib/proposals/orders"
+import type { ContactPersonRef } from "@/lib/xero/types"
 
 export const runtime = "nodejs"
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await requireSessionApi()
   if (session instanceof NextResponse) return session
-  return NextResponse.json({ orders: sanitizeOrdersForApi(await listOrders(), session) })
+
+  const { searchParams } = new URL(request.url)
+  const contactId = searchParams.get("contactId")
+  const status = searchParams.get("status") as OrderStatus | null
+
+  const orders = contactId
+    ? await listOrdersByContactId(contactId, status ? { status } : undefined)
+    : await listOrders()
+
+  return NextResponse.json({ orders: sanitizeOrdersForApi(orders, session) })
 }
 
 export async function POST(request: Request) {
@@ -20,6 +30,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     xeroContactId?: string
     customer?: CustomerSnapshot
+    selectedPersonRef?: ContactPersonRef
     order: Omit<OrderInput, "actionDate"> & { actionDate?: string }
   }
 
@@ -33,6 +44,12 @@ export async function POST(request: Request) {
   }
   if (!customer?.companyName) {
     return NextResponse.json({ error: "Customer required (Xero contact or manual details)" }, { status: 400 })
+  }
+
+  if (body.selectedPersonRef !== undefined) {
+    customer = { ...customer, selectedPersonRef: body.selectedPersonRef }
+  } else if (!customer.selectedPersonRef) {
+    customer = { ...customer, selectedPersonRef: "primary" }
   }
 
   const input = buildOrderInput(body.order)

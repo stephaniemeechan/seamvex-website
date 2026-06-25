@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server"
 import { requireSessionApi, requireSessionMutation } from "@/lib/auth/api-guards"
-import { contactToSnapshot, getContact, updateContact } from "@/lib/crm/contacts"
+import {
+  contactToSnapshot,
+  getContact,
+  updateContact,
+  updateContactPersons,
+} from "@/lib/crm/contacts"
+import { validateContactPersons } from "@/lib/crm/contact-persons"
 import { createXeroContact, updateXeroContact, xeroConfig } from "@/lib/xero/client"
 import { execute } from "@/lib/db"
+import type { XeroContactPerson } from "@/lib/xero/types"
 
 export const runtime = "nodejs"
 
@@ -59,10 +66,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
     }
+    if (body.contactPersons !== undefined) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
   }
 
   let contact = await updateContact(id, patch)
   if (!contact) return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  if (isAdmin && body.contactPersons !== undefined) {
+    const persons = body.contactPersons as XeroContactPerson[]
+    const personsErr = validateContactPersons(persons, contact.contactEmail)
+    if (personsErr) return NextResponse.json({ error: personsErr }, { status: 400 })
+    contact = (await updateContactPersons(id, persons))!
+  }
 
   if (isAdmin && xeroConfig()) {
     try {
