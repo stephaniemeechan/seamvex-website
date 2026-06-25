@@ -13,6 +13,8 @@ const XERO_AUTH = "https://login.xero.com/identity/connect/authorize"
 const XERO_TOKEN = "https://identity.xero.com/connect/token"
 const XERO_CONNECTIONS = "https://api.xero.com/connections"
 
+// Granular scopes only — apps created on/after 2026-03-02 reject deprecated
+// accounting.transactions / accounting.transactions.read (invalid_scope). See commit 001ccb5.
 export const XERO_SCOPES = [
   "openid",
   "profile",
@@ -21,7 +23,7 @@ export const XERO_SCOPES = [
   "accounting.contacts",
   "accounting.contacts.read",
   "accounting.invoices",
-  "accounting.transactions.read",
+  "accounting.invoices.read",
   "accounting.settings.read",
 ].join(" ")
 

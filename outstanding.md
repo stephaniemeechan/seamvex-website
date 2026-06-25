@@ -39,7 +39,7 @@ Then:
 
 Xero app: **seamvex-portal** (or replacement web app) · redirect `https://seamvex.com/api/xero/callback` only — no localhost.
 
-Scopes needed: `accounting.contacts`, `accounting.contacts.read`, `accounting.settings.read`, `accounting.invoices`, `accounting.transactions.read` (+ `offline_access` if offered). Re-connect Xero after deploy if scopes changed.
+Scopes needed: `accounting.contacts`, `accounting.contacts.read`, `accounting.settings.read`, `accounting.invoices`, `accounting.invoices.read` (+ `offline_access` if offered). **Do not** use deprecated `accounting.transactions.read` on new Xero apps (March 2026+).
 
 ### Xero contacts — two-way sync (code facts)
 
@@ -56,7 +56,7 @@ Scopes needed: `accounting.contacts`, `accounting.contacts.read`, `accounting.se
 
 **Contact persons (Xero parity):** One CRM contact = one Xero company. Primary person on header fields; up to 5 additional people in `ContactPersons[]`. Tickets and orders can link a person ref. Admin-only create/edit; standard users read-only.
 
-**Invoice visibility:** Portal reads invoice status from Xero (`accounting.transactions.read`) on order detail and contact detail (AR + recent invoices). Re-connect OAuth after deploy if scope was added.
+**Invoice visibility:** Portal reads invoice status from Xero (`accounting.invoices.read`) on order detail and contact detail (AR + recent invoices).
 
 **Manual sign:** Admin can upload signed PDF on order detail (alternative to Documenso) with optional DRAFT invoice creation.
 
