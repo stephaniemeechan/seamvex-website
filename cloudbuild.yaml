@@ -8,6 +8,7 @@
 # It creates its own trigger and may deploy to a different service/region.
 #
 # Git push deploys when Cloud Build trigger is configured (see deploy/setup-cloud-build-trigger.ps1).
+# deploy-rev: 2026-06-25 — force rebuild (Xero scope fix on main)
 
 substitutions:
   _REGION: europe-west1
