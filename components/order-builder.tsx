@@ -133,7 +133,7 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/contacts?status=active").then(async (r) => {
+      fetch("/api/contacts").then(async (r) => {
         const d = await r.json()
         if (!r.ok) throw new Error(d.error ?? "Failed to load contacts")
         return (d.contacts ?? []) as CrmContactRow[]
@@ -378,7 +378,7 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
           </select>
           {xeroConnected && crmContacts.length === 0 && !contactsError && (
             <p className="mt-2 text-sm text-muted-foreground">
-              No CRM customers linked to Xero yet. Import or push contacts first.
+              No customers linked to Xero yet. Import or push contacts first.
             </p>
           )}
           {previewLoading && selectedContactId && (
