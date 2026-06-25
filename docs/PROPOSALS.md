@@ -53,7 +53,7 @@ Only **proposal** is editable. Standard users cannot create/send/void.
 
 Redirect URI: `https://seamvex.com/api/xero/callback` (and localhost for dev)
 
-Scopes include contacts + transactions. Single Seamvex org only. See [XERO-SETUP.md](./XERO-SETUP.md).
+Scopes include contacts + invoices. Single Seamvex org only. See [XERO-SETUP.md](./XERO-SETUP.md).
 
 ## Data
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/auth/rbac"
+import { integrationConfigHint } from "@/lib/integration-status"
 import { xeroAuthorizeUrl, xeroConfig } from "@/lib/xero/client"
 
 export const runtime = "nodejs"
@@ -12,7 +13,7 @@ export async function GET() {
     return NextResponse.json(
       {
         error: "Xero not configured",
-        hint: "Set XERO_CLIENT_ID and XERO_CLIENT_SECRET in .env.local",
+        hint: integrationConfigHint("xero"),
       },
       { status: 503 },
     )

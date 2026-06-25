@@ -75,14 +75,27 @@ const env = {
   ADMIN_EMAIL: "s.meechan@seamvex.com,j.cyprus@seamvex.com",
 }
 
-if (process.env.XERO_CLIENT_ID) env.XERO_CLIENT_ID = process.env.XERO_CLIENT_ID
-if (process.env.XERO_CLIENT_SECRET) env.XERO_CLIENT_SECRET = process.env.XERO_CLIENT_SECRET
-if (process.env.XERO_CLIENT_ID || process.env.XERO_CLIENT_SECRET) {
+if (process.env.XERO_CLIENT_ID ?? local.XERO_CLIENT_ID) {
+  env.XERO_CLIENT_ID = process.env.XERO_CLIENT_ID ?? local.XERO_CLIENT_ID
+}
+if (process.env.XERO_CLIENT_SECRET ?? local.XERO_CLIENT_SECRET) {
+  env.XERO_CLIENT_SECRET = process.env.XERO_CLIENT_SECRET ?? local.XERO_CLIENT_SECRET
+}
+if (env.XERO_CLIENT_ID || env.XERO_CLIENT_SECRET) {
   env.XERO_REDIRECT_URI = "https://seamvex.com/api/xero/callback"
 }
-if (process.env.TWILIO_ACCOUNT_SID) env.TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID
-if (process.env.TWILIO_AUTH_TOKEN) env.TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN
-if (process.env.TWILIO_PHONE_NUMBER) env.TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER
+if (process.env.XERO_SALES_ACCOUNT_CODE ?? local.XERO_SALES_ACCOUNT_CODE) {
+  env.XERO_SALES_ACCOUNT_CODE = process.env.XERO_SALES_ACCOUNT_CODE ?? local.XERO_SALES_ACCOUNT_CODE
+}
+if (process.env.TWILIO_ACCOUNT_SID ?? local.TWILIO_ACCOUNT_SID) {
+  env.TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID ?? local.TWILIO_ACCOUNT_SID
+}
+if (process.env.TWILIO_AUTH_TOKEN ?? local.TWILIO_AUTH_TOKEN) {
+  env.TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN ?? local.TWILIO_AUTH_TOKEN
+}
+if (process.env.TWILIO_PHONE_NUMBER ?? local.TWILIO_PHONE_NUMBER) {
+  env.TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER ?? local.TWILIO_PHONE_NUMBER
+}
 
 const yaml = Object.entries(env)
   .map(([k, v]) => `${k}: "${String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)

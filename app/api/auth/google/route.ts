@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { integrationConfigHint } from "@/lib/integration-status"
 import { googleAuthorizeUrl, googleConfig } from "@/lib/auth/google"
 
 export const runtime = "nodejs"
@@ -9,7 +10,7 @@ export async function GET() {
     return NextResponse.json(
       {
         error: "Google OAuth not configured",
-        hint: "Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REDIRECT_URI in .env.local",
+        hint: integrationConfigHint("google"),
       },
       { status: 503 },
     )

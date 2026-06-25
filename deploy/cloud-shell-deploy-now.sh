@@ -12,9 +12,12 @@ gcloud config set project "$PROJECT"
 
 PN=$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')
 CB="${PN}@cloudbuild.gserviceaccount.com"
-for R in roles/run.admin roles/iam.serviceAccountUser roles/artifactregistry.writer roles/cloudsql.client; do
-  gcloud projects add-iam-policy-binding "$PROJECT" \
-    --member="serviceAccount:${CB}" --role="$R" --quiet >/dev/null 2>&1 || true
+RUN_SA="${PN}-compute@developer.gserviceaccount.com"
+for M in "serviceAccount:${CB}" "serviceAccount:${RUN_SA}"; do
+  for R in roles/run.admin roles/iam.serviceAccountUser roles/artifactregistry.writer roles/cloudsql.client; do
+    gcloud projects add-iam-policy-binding "$PROJECT" \
+      --member="$M" --role="$R" --quiet >/dev/null 2>&1 || true
+  done
 done
 
 rm -rf "$DIR"

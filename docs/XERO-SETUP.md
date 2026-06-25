@@ -40,7 +40,7 @@ At https://developer.xero.com/app/manage — app **seamvex-portal**:
 | Type | Web app |
 | Company URL | `https://seamvex.com` |
 | Redirect URI (prod) | `https://seamvex.com/api/xero/callback` |
-| Scopes | openid, profile, email, offline_access, accounting.contacts, accounting.contacts.read, accounting.transactions, accounting.settings.read |
+| Scopes | openid, profile, email, offline_access, accounting.contacts, accounting.contacts.read, accounting.invoices, accounting.settings.read |
 
 Scopes are requested by code (`lib/xero/client.ts` `XERO_SCOPES`).
 

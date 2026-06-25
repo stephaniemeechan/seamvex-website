@@ -1,132 +1,107 @@
-# Go-live outstanding — START HERE (new chat)
+# Outstanding — production facts
 
-**Updated:** 2026-06-23  
-**Repo:** `main` @ `8c3777b` (OAuth fix — **NOT on Cloud Run yet**)  
-**GCP project:** `exalted-splicer-499401-e2`  
-**Live service:** `seamvex-website-2` · still on old revision (Gmail scopes at login = not deployed)
-
----
-
-## NEXT ACTION — Cloud Build trigger + deploy
-
-**Why push didn't deploy:** orphan ew2 trigger was deleted 2026-06-21; ew1 trigger not created yet.
-
-**One-time setup** (GCP Cloud Shell or local `gcloud auth login`):
-
-```powershell
-.\deploy\setup-cloud-build-trigger.ps1
-```
-
-Or deploy **right now** without a trigger (Cloud Shell):
-
-```bash
-curl -sL https://raw.githubusercontent.com/stephaniemeechan/seamvex-website/main/deploy/cloud-shell-deploy-now.sh | bash
-```
-
-Or create trigger (connect GitHub first if this fails — script prints the link):
-
-```bash
-curl -sL https://raw.githubusercontent.com/stephaniemeechan/seamvex-website/main/deploy/cloud-shell-setup-cloud-build-trigger.sh | bash
-```
-
-Then `git push origin main` (or run trigger manually in Cloud Build console).
-
-After green build, retry https://seamvex.com/admin/login — OAuth scopes should be `openid email profile` only (not Gmail).
-
-**Do not use** Cloud Run "Connect repository" — it ignores `cloudbuild.yaml` and may deploy to the wrong service/region.
+**Updated:** 2026-06-25  
+**Live:** `seamvex-website-2` · `europe-west1` · https://seamvex.com  
+**GCP project:** `exalted-splicer-499401-e2`
 
 ---
 
-## Cloud Run services (console)
+## Working now
 
-| Service | Region | Auth | Role |
-|---------|--------|------|------|
-| **`seamvex-website-2`** | europe-west1 | Public | **Live** — only service (orphan deleted 2026-06-21) |
-
----
-
-## Deploy workflow (read this)
-
-| Step | What happens |
-|------|----------------|
-| `git push origin main` | Cloud Build trigger → `cloudbuild.yaml` → `seamvex-website-2` ew1 |
-| `.\deploy\deploy-live.ps1` | **Obsolete** — do not use (ew2 image path) |
-| `node deploy/generate-prod-env.mjs` + `.\deploy\apply-prod-env.ps1` | Apply env vars (only when vars change; image deploy preserves them) |
-
-**Do not use** `--update-env-vars=...ADMIN_EMAIL=a@x.com,j@y.com` — gcloud splits on commas. Use `--env-vars-file` (scripts above).
+| Item | Fact |
+|------|------|
+| Site + admin | Live; Google SSO login works |
+| Cloud SQL | `seamvex_crm` on `free-trial-first-project` |
+| Gmail | Connected in Settings (send uses your @seamvex.com mailbox) |
+| Domains | `seamvex.com`, `www`, `seamcor.com`, `www` → `seamvex-website-2` |
+| Legacy `/sign` | Blocked in prod (404) — by design |
 
 ---
 
-## DONE (verified 2026-06-21)
+## Do next — Xero (in progress)
 
-| Item | Status |
+Cloud Run needs these vars (then **Deploy**):
+
+| Name | Value |
 |------|--------|
-| Cloud Run env (12 vars) | Applied — rev `00019-nbr`, preserved on `00020-crd` |
-| Google OAuth `/api/auth/google` | **307** redirect to Google |
-| OAuth callback redirects | Fixed — uses `https://seamvex.com` not `0.0.0.0:8080` (`lib/request-url.ts`) |
-| `pnpm go-live-smoke` | **6/6 pass** |
-| Cloud SQL | `free-trial-first-project` / `seamvex_crm` |
-| Xero app | `seamvex-portal` (0/5 connections) |
-| Domain mappings | `seamvex.com`, `www`, `seamcor.com`, `www` → `seamvex-website-2` |
+| `XERO_CLIENT_ID` | From Xero app Connection tab |
+| `XERO_CLIENT_SECRET` | From Xero app (copy exactly) |
+| `XERO_REDIRECT_URI` | `https://seamvex.com/api/xero/callback` |
+| `XERO_SALES_ACCOUNT_CODE` | `200` |
+
+Also fix on Run if wrong: `ADMIN_EMAIL=s.meechan@seamvex.com,j.cyprus@seamvex.com`
+
+Then:
+
+1. https://seamvex.com/admin/settings → **Connect Xero**
+2. Authorise **seamvex data systems ltd** only (new empty org)
+3. **Sync contacts** or selective import (see below)
+
+Xero app: **seamvex-portal** (or replacement web app) · redirect `https://seamvex.com/api/xero/callback` only — no localhost.
+
+Scopes needed: `accounting.contacts`, `accounting.contacts.read`, `accounting.settings.read`, `accounting.invoices` (+ `offline_access` if offered).
 
 ---
 
-## NOT DONE — checklist
+## Do next — customer contacts
 
-### P0 — login
+- Export on disk: `xero-customers-export.json` / `.csv` — **131 customers**, two old orgs (not the new Xero org).
+- Import **selected** only — do not import all 131.
+- Old `xeroContactId` values are invalid in the new org; strip on import.
 
-- [x] Cloud Run env applied (12 vars)
-- [x] Google OAuth client + redirect URIs in GCP Credentials
-- [ ] **Login E2E** — Google sign-in → `/admin` (you verify in browser)
-- [ ] **GCS bucket** `seamvex-contracts-eu` + Run SA `storage.objectUser` (verify)
+```bash
+pnpm reset-crm-data --import-xero --include-csv=xero-import-selected.csv --strip-xero-ids
+```
 
-### P1 — agreements + CRM
-
-- [x] **Delete orphan** `seamvex-website` (ew2) + trigger — done 2026-06-21
-- [ ] **Create ew1 Cloud Build trigger** from `/cloudbuild.yaml` → `seamvex-website-2`
-- [ ] **Documenso** at `sign.seamvex.com` — see [`e-sign.md`](e-sign.md)
-- [ ] Real `DOCUMENSO_API_KEY` on Run (currently `pending`)
-- [ ] **Xero** — connect org, sync contacts — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md)
-- [ ] **Customer data** — decide source before `reset-crm-data`
-
-### P2 — after live
-
-- [ ] Twilio voice webhook + `TWILIO_*` on Run
-- [ ] Gmail connect per admin in Settings
-- [ ] Xero E2E: order → send → sign → DRAFT invoice
+Run against prod Postgres only when ready. Build shortlist CSV from `xero-customers-export.csv` (`companyName` column).
 
 ---
 
-## Recorded IDs (non-secret)
+## Deferred — agreement sign (Documenso)
+
+**Skipped for now.** Prod cannot send/sign agreements until this is done:
+
+| Need | Detail |
+|------|--------|
+| Documenso service | Deploy to `sign.seamvex.com` (separate Cloud Run + Postgres) — [`e-sign.md`](e-sign.md) |
+| Main app env | Replace `DOCUMENSO_API_KEY=pending` with real key from Documenso |
+| Webhook in Documenso | `https://seamvex.com/api/documenso/webhook` · header `x-documenso-secret` = same as `DOCUMENSO_WEBHOOK_SECRET` on Run |
+| GCS IAM | Run SA needs `storage.objectUser` on `seamvex-contracts-eu` (for signed PDFs after webhook) |
+
+Until then: proposals + contract PDFs work; **Send for signature** fails in prod.
+
+---
+
+## Deferred — later
+
+| Item | Notes |
+|------|--------|
+| Twilio voice | `TWILIO_*` on Run + webhook on `+441870470573` |
+| Deploy code on `main` | Prod UI still shows old “`.env.local`” Xero message until next deploy; fix is in repo |
+| Cloud Build trigger | `git push` → `cloudbuild.yaml` → `seamvex-website-2` — create if push does not deploy |
+| GCS IAM | Verify before first signed PDF (Documenso path) |
+
+---
+
+## IDs (non-secret)
 
 | What | Value |
 |------|--------|
-| GCP project | `exalted-splicer-499401-e2` |
-| Cloud SQL connection | `exalted-splicer-499401-e2:europe-west1:free-trial-first-project` |
-| DB name | `seamvex_crm` |
-| Xero app | `seamvex-portal` |
+| Cloud SQL | `exalted-splicer-499401-e2:europe-west1:free-trial-first-project` |
+| GCS bucket | `seamvex-contracts-eu` |
 | Xero redirect | `https://seamvex.com/api/xero/callback` |
-| Admin emails | `s.meechan@seamvex.com`, `j.cyprus@seamvex.com` |
+| Documenso API URL | `https://sign.seamvex.com/api/v2` |
 | Twilio number | `+441870470573` |
 
-Passwords, tokens, `SESSION_SECRET` → **`.env.local` only**.
+Secrets stay in Cloud Run / `.env.local` — not in git.
 
 ---
 
-## Important facts
+## Docs
 
-- **Login:** Google `@seamvex.com` only in prod. No `ADMIN_PASSWORD` on Run.
-- **`data/proposals.db`:** local dev only. Prod uses Cloud SQL.
-- **Git push does NOT wipe env vars** — image-only deploy preserves them.
-- **Git push deploys** once Cloud Build trigger `deploy-seamvex-website-2-main` exists.
-
----
-
-## Doc index
-
-| File | Purpose |
-|------|---------|
-| [`docs/GET-READY.md`](docs/GET-READY.md) | Full checklist |
-| [`docs/DEPLOY.md`](docs/DEPLOY.md) | Cloud Run deploy + trigger |
-| [`deploy/setup-cloud-build-trigger.ps1`](deploy/setup-cloud-build-trigger.ps1) | One-time Cloud Build trigger |
-| [`deploy/apply-prod-env.ps1`](deploy/apply-prod-env.ps1) | Apply env vars from generated YAML |
+| File | Use |
+|------|-----|
+| [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md) | Xero org + connect |
+| [`e-sign.md`](e-sign.md) | Documenso when ready |
+| [`docs/DEPLOY.md`](docs/DEPLOY.md) | Cloud Run deploy |
+| [`deploy/apply-xero-env.ps1`](deploy/apply-xero-env.ps1) | Apply Xero vars via `gcloud` (after `gcloud auth login`) |

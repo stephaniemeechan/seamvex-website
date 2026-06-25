@@ -18,7 +18,7 @@ export const XERO_SCOPES = [
   "offline_access",
   "accounting.contacts",
   "accounting.contacts.read",
-  "accounting.transactions",
+  "accounting.invoices",
   "accounting.settings.read",
 ].join(" ")
 

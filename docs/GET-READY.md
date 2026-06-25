@@ -38,7 +38,7 @@ Do **not** commit `.env.local`. It stays on your machine only.
 | A9 | `.env.local` has `SESSION_SECRET` (any non-empty string for local) | [x] | |
 | A10 | `.env.local` has `NEXT_PUBLIC_APP_URL=http://localhost:3000` | [x] | |
 | A11 | `.env.local` has **no** `GOOGLE_CLIENT_ID` (unless you want Google login locally instead of password) | [x] | No Google vars — password login path |
-| A12 | `.env.local` has Xero vars if you test Xero locally (`XERO_CLIENT_ID`, `XERO_CLIENT_SECRET`, `XERO_REDIRECT_URI=http://localhost:3000/api/xero/callback`) | [x] | Xero vars present |
+| A12 | `.env.local` has Xero vars if you test Xero locally (`XERO_CLIENT_ID`, `XERO_CLIENT_SECRET`, `XERO_REDIRECT_URI=http://localhost:3000/api/xero/callback`) | [!] | Keys exist; **values empty** — get from Xero developer app **seamvex-portal** |
 | A13 | Run `pnpm dev` | [x] | Running on http://localhost:3000 |
 | A14 | Open `http://localhost:3000/admin/login` — password login works | [x] | Login API returns 200 |
 | A15 | Run `pnpm build` — completes without error | [x] | Passed |

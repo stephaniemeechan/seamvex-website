@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { csrfFetch } from "@/lib/api-client"
+import { xeroNotConfiguredMessage } from "@/lib/integration-status"
 
 type ResourceLink = { label: string; url: string }
 
@@ -316,7 +317,7 @@ export function SettingsClient({
           </p>
         )}
         {!xeroReady ? (
-          <p className="text-sm text-muted-foreground">Add Xero credentials to .env.local</p>
+          <p className="text-sm text-muted-foreground">{xeroNotConfiguredMessage()}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             <a

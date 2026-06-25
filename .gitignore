@@ -32,6 +32,7 @@ xero-customers-export.md
 deploy/*.local.sh
 deploy/cloud-run-env.prod.yaml
 deploy/github-deploy-key.json
+deploy/xero-run-env.yaml
 .secrets/
 
 # IDE / OS
