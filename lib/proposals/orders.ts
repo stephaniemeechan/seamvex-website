@@ -3,8 +3,40 @@ import { calculateOrder, validateLicensingMode, deriveFullyManaged } from "@/lib
 import type { OrderInput, OrderStatus, OrderLineInput, OrderType, RolloutStatus, Deployment } from "@/lib/proposals/types"
 import { execute, query, queryOne, newId, nextDocumentNumber, ensureDb } from "@/lib/db"
 import { parseIsoDate } from "@/lib/proposals/billing"
-import { upsertContactFromSnapshot, recomputeContactStatus } from "@/lib/crm/contacts"
+import {
+  contactToSnapshot,
+  getContactByXeroId,
+  recomputeContactStatus,
+  upsertContactFromSnapshot,
+} from "@/lib/crm/contacts"
+import { fetchXeroContact, xeroContactToCustomerSnapshot } from "@/lib/xero/client"
 import type { ContactPersonRef, XeroContactPerson } from "@/lib/xero/types"
+
+/** Prefer CRM snapshot for linked Xero contacts; fall back to live Xero fetch. */
+export async function resolveLinkedCustomerSnapshot(
+  xeroContactId: string,
+  selectedPersonRef?: ContactPersonRef,
+): Promise<CustomerSnapshot | null> {
+  const crm = await getContactByXeroId(xeroContactId)
+  if (crm) {
+    let customer = contactToSnapshot(crm)
+    if (selectedPersonRef !== undefined) {
+      customer = { ...customer, selectedPersonRef }
+    } else if (customer.selectedPersonRef === undefined) {
+      customer = { ...customer, selectedPersonRef: "primary" }
+    }
+    return customer
+  }
+  const contact = await fetchXeroContact(xeroContactId)
+  if (!contact) return null
+  let customer = xeroContactToCustomerSnapshot(contact)
+  if (selectedPersonRef !== undefined) {
+    customer = { ...customer, selectedPersonRef }
+  } else if (customer.selectedPersonRef === undefined) {
+    customer = { ...customer, selectedPersonRef: "primary" }
+  }
+  return customer
+}
 
 export type CustomerSnapshot = {
   xeroContactId?: string

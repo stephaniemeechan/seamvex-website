@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server"
 import { requireAdminMutation, requireSessionApi, sanitizeOrdersForApi, sanitizeOrderForApi } from "@/lib/auth/api-guards"
-import { listOrders, listOrdersByContactId, createOrder, buildOrderInput } from "@/lib/proposals/orders"
-import { fetchXeroContact, xeroContactToCustomerSnapshot } from "@/lib/xero/client"
+import {
+  listOrders,
+  listOrdersByContactId,
+  createOrder,
+  buildOrderInput,
+  resolveLinkedCustomerSnapshot,
+} from "@/lib/proposals/orders"
 import type { OrderInput, OrderStatus } from "@/lib/proposals/types"
 import type { CustomerSnapshot } from "@/lib/proposals/orders"
 import type { ContactPersonRef } from "@/lib/xero/types"
@@ -36,20 +41,22 @@ export async function POST(request: Request) {
 
   let customer = body.customer
   if (body.xeroContactId) {
-    const contact = await fetchXeroContact(body.xeroContactId)
-    if (!contact) {
-      return NextResponse.json({ error: "Xero contact not found" }, { status: 400 })
+    const linked = await resolveLinkedCustomerSnapshot(
+      body.xeroContactId,
+      body.selectedPersonRef ?? body.customer?.selectedPersonRef,
+    )
+    if (!linked) {
+      return NextResponse.json({ error: "Linked customer not found" }, { status: 400 })
     }
-    customer = xeroContactToCustomerSnapshot(contact)
-  }
-  if (!customer?.companyName) {
-    return NextResponse.json({ error: "Customer required (Xero contact or manual details)" }, { status: 400 })
-  }
-
-  if (body.selectedPersonRef !== undefined) {
-    customer = { ...customer, selectedPersonRef: body.selectedPersonRef }
-  } else if (!customer.selectedPersonRef) {
-    customer = { ...customer, selectedPersonRef: "primary" }
+    customer = linked
+  } else if (!customer?.companyName) {
+    return NextResponse.json({ error: "Customer required (linked contact or manual details)" }, { status: 400 })
+  } else {
+    if (body.selectedPersonRef !== undefined) {
+      customer = { ...customer, selectedPersonRef: body.selectedPersonRef }
+    } else if (!customer.selectedPersonRef) {
+      customer = { ...customer, selectedPersonRef: "primary" }
+    }
   }
 
   const input = buildOrderInput(body.order)

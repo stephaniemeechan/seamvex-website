@@ -17,9 +17,44 @@ import type {
 } from "@/lib/proposals/types"
 import type { CustomerSnapshot } from "@/lib/proposals/orders"
 import { PersonRefSelect } from "@/components/contact-persons-editor"
-import type { ContactPersonRef } from "@/lib/xero/types"
+import type { ContactPersonRef, XeroContactPerson } from "@/lib/xero/types"
 
-type XeroContact = { ContactID: string; Name: string }
+type CrmContactRow = {
+  id: string
+  xeroContactId: string | null
+  companyName: string
+  customerNumber: string | null
+  billingAddress1: string | null
+  billingAddress2: string | null
+  billingAddress3: string | null
+  postcode: string | null
+  country: string | null
+  contactName: string | null
+  contactPhone: string | null
+  contactEmail: string | null
+  accountsContact: string | null
+  accountsEmail: string | null
+  contactPersons: XeroContactPerson[]
+}
+
+function crmContactToSnapshot(c: CrmContactRow): CustomerSnapshot {
+  return {
+    xeroContactId: c.xeroContactId ?? undefined,
+    companyName: c.companyName,
+    customerNumber: c.customerNumber ?? undefined,
+    billingAddress1: c.billingAddress1 ?? undefined,
+    billingAddress2: c.billingAddress2 ?? undefined,
+    billingAddress3: c.billingAddress3 ?? undefined,
+    postcode: c.postcode ?? undefined,
+    country: c.country ?? undefined,
+    contactName: c.contactName ?? undefined,
+    contactPhone: c.contactPhone ?? undefined,
+    contactEmail: c.contactEmail ?? undefined,
+    accountsContact: c.accountsContact ?? undefined,
+    accountsEmail: c.accountsEmail ?? undefined,
+    contactPersons: c.contactPersons.length ? c.contactPersons : undefined,
+  }
+}
 
 const LINE_GROUPS: { title: string; skus: SkuId[] }[] = [
   {
@@ -47,7 +82,7 @@ function CustomerPreview({ customer }: { customer: CustomerSnapshot }) {
 
   return (
     <div className="mt-3 rounded-lg border border-border bg-secondary/30 p-4 text-sm">
-      <p className="font-medium text-primary">Customer details (single source: Xero → PDF)</p>
+      <p className="font-medium text-primary">Customer details (CRM → PDF)</p>
       <dl className="mt-2 grid gap-1 sm:grid-cols-2">
         {rows.map(([label, value]) => (
           <div key={label}>
@@ -63,7 +98,7 @@ function CustomerPreview({ customer }: { customer: CustomerSnapshot }) {
 export function OrderBuilder({ orderId }: { orderId?: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState(Boolean(orderId))
-  const [contacts, setContacts] = useState<XeroContact[]>([])
+  const [crmContacts, setCrmContacts] = useState<CrmContactRow[]>([])
   const [xeroConnected, setXeroConnected] = useState(false)
   const [contactsError, setContactsError] = useState("")
   const [selectedContactId, setSelectedContactId] = useState("")
@@ -97,14 +132,20 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
   )
 
   useEffect(() => {
-    fetch("/api/xero/contacts")
-      .then(async (r) => {
+    Promise.all([
+      fetch("/api/contacts?status=active").then(async (r) => {
         const d = await r.json()
         if (!r.ok) throw new Error(d.error ?? "Failed to load contacts")
-        const connected = Boolean(d.connected)
+        return (d.contacts ?? []) as CrmContactRow[]
+      }),
+      fetch("/api/xero/contacts").then(async (r) => {
+        const d = await r.json()
+        return Boolean(d.connected)
+      }),
+    ])
+      .then(([rows, connected]) => {
         setXeroConnected(connected)
-        setContacts(d.contacts ?? [])
-        if (d.error) setContactsError(d.error)
+        setCrmContacts(rows.filter((c) => c.xeroContactId?.trim()))
       })
       .catch((e) => {
         setContactsError(e instanceof Error ? e.message : "Failed to load contacts")
@@ -116,19 +157,10 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
       if (!orderId) setXeroPreview(null)
       return
     }
-    setPreviewLoading(true)
-    fetch(`/api/xero/contacts/${selectedContactId}`)
-      .then(async (r) => {
-        const d = await r.json()
-        if (!r.ok) throw new Error(d.error ?? "Failed to load customer")
-        setXeroPreview(d.customer)
-      })
-      .catch((e) => {
-        setXeroPreview(null)
-        setContactsError(e instanceof Error ? e.message : "Failed to load customer")
-      })
-      .finally(() => setPreviewLoading(false))
-  }, [selectedContactId])
+    const match = crmContacts.find((c) => c.xeroContactId === selectedContactId)
+    if (match) setXeroPreview(crmContactToSnapshot(match))
+    setPreviewLoading(false)
+  }, [selectedContactId, crmContacts, orderId])
 
   useEffect(() => {
     if (!orderId) return
@@ -284,7 +316,10 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
             selectedPersonRef: personRef,
             customer: {
               ...(xeroPreview ??
-                { companyName: contacts.find((c) => c.ContactID === selectedContactId)?.Name ?? "" }),
+                {
+                  companyName:
+                    crmContacts.find((c) => c.xeroContactId === selectedContactId)?.companyName ?? "",
+                }),
               selectedPersonRef: personRef,
             },
             order: orderPayload,
@@ -327,7 +362,7 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-primary">Customer</h2>
         <div>
-          <label className="text-sm font-medium">Customer (Xero)</label>
+          <label className="text-sm font-medium">Customer</label>
           <select
             className="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
             value={selectedContactId}
@@ -335,14 +370,16 @@ export function OrderBuilder({ orderId }: { orderId?: string }) {
             disabled={!xeroConnected && !orderId}
           >
             <option value="">Select customer…</option>
-            {contacts.map((c) => (
-              <option key={c.ContactID} value={c.ContactID}>
-                {c.Name}
+            {crmContacts.map((c) => (
+              <option key={c.id} value={c.xeroContactId!}>
+                {c.companyName}
               </option>
             ))}
           </select>
-          {xeroConnected && contacts.length === 0 && !contactsError && (
-            <p className="mt-2 text-sm text-muted-foreground">No Xero customers found.</p>
+          {xeroConnected && crmContacts.length === 0 && !contactsError && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              No CRM customers linked to Xero yet. Import or push contacts first.
+            </p>
           )}
           {previewLoading && selectedContactId && (
             <p className="mt-2 text-sm text-muted-foreground">Loading customer details…</p>

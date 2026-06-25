@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server"
 import { requireSessionApi, requireAdminMutation, sanitizeOrderForApi } from "@/lib/auth/api-guards"
-import { getOrder, updateOrder, buildOrderInput, type CustomerSnapshot } from "@/lib/proposals/orders"
+import {
+  getOrder,
+  updateOrder,
+  buildOrderInput,
+  resolveLinkedCustomerSnapshot,
+  type CustomerSnapshot,
+} from "@/lib/proposals/orders"
 import type { OrderInput } from "@/lib/proposals/types"
-import { fetchXeroContact, xeroContactToCustomerSnapshot } from "@/lib/xero/client"
 
 export const runtime = "nodejs"
 
@@ -28,14 +33,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   let customer = body.customer
   const xeroId = body.xeroContactId ?? body.customer.xeroContactId
   if (xeroId) {
-    const contact = await fetchXeroContact(xeroId)
-    if (contact) {
-      const selectedPersonRef = body.customer.selectedPersonRef
-      customer = xeroContactToCustomerSnapshot(contact)
-      if (selectedPersonRef !== undefined) {
-        customer = { ...customer, selectedPersonRef }
-      }
-    }
+    const linked = await resolveLinkedCustomerSnapshot(xeroId, body.customer.selectedPersonRef)
+    if (linked) customer = linked
   }
 
   const input = buildOrderInput(body.order)
