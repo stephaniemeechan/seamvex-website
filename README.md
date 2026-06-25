@@ -53,7 +53,7 @@ Implementation: [`lib/env.ts`](lib/env.ts) — `legacySignAllowed()`, `passwordL
 | Settings (voice routing, Xero sync, users, resources edit) | Yes | No (sections hidden) |
 | Voice (outbound click-to-call; inbound simulring) | Yes | Yes (set phone + **Receive inbound calls**) |
 | Resources page (Drive links) | Yes | **No** (admin only) |
-| Contact Drive attachments | Add/remove | View only |
+| Contact create/edit + Xero push | Yes | View only (support info only) |
 
 **Signing (production):** Documenso CE → webhook → GCS PDF → Xero DRAFT invoice → ticket activity.
 
@@ -62,6 +62,20 @@ Implementation: [`lib/env.ts`](lib/env.ts) — `legacySignAllowed()`, `passwordL
 **Twilio (voice only — no SMS):** Outbound from contact/ticket detail (rings your phone, then customer). Inbound to company line simulrings CRM users with **Receive inbound calls**; after-hours routes to on-call mobile. Hours, greetings, ring group, and no-answer behaviour configured in **Admin → Settings** (`voice_config` in DB, not env).
 
 **Not in v1:** SMS, cashflow, overdue reporting, invoice paid polling.
+
+---
+
+## Xero contacts migration (2026)
+
+| Topic | Fact |
+|-------|------|
+| **Two-way sync** | Pull: Settings → Sync contacts, `pnpm export-xero-customers`. Push: admin New contact / Save, `pnpm push-contacts-to-xero`. |
+| **Export files** | **JSON** = import source (`xero-customers-export.json`). **CSV** = validation/manifest. **MD** = human reference only. |
+| **Selective import** | **43 unique contacts** from [`list-of-companies.csv`](list-of-companies.csv) via [`xero-import-selected.csv`](xero-import-selected.csv). **12 excluded:** [`excluded-companies.md`](excluded-companies.md). |
+| **Westland** | Two list names (Driffield + Ellesmere) → one Xero contact. |
+| **Duplicate orgs** | Old export has two orgs; prefer **Seamcor Limited** when deduping. |
+| **Deploy path** | Local dev → `git push main` → Cloud Build → **`seamvex-website-2`**. Import/push run on **prod Cloud SQL** — not local SQLite. |
+| **Prod ops** | Connect Xero at https://seamvex.com/admin/settings, then import + push (see [`outstanding.md`](outstanding.md)). |
 
 ---
 
@@ -136,7 +150,10 @@ Brand accent on PDFs: `#E5007D` ([`lib/brand.ts`](lib/brand.ts) `BRAND_COLORS.pi
 | `pnpm build` | Production build (includes legal check) |
 | `pnpm sync-legal-bundle` | Copy branding → deploy/public |
 | `pnpm reset-crm-data` | Wipe agreements/tickets/contacts |
-| `pnpm reset-crm-data --import-xero` | Wipe + import `xero-customers-export.json` |
+| `pnpm reset-crm-data --import-xero --include-csv=xero-import-selected.csv --strip-xero-ids` | Wipe + selective import (prod) |
+| `pnpm reset-crm-data … --dry-run` | Preflight import (no DB changes) |
+| `pnpm push-contacts-to-xero` | Create CRM contacts in connected Xero org |
+| `pnpm build-import-manifest` | Regenerate `xero-import-selected.csv` from list + export |
 | `pnpm export-xero-customers` | Export Xero contacts (PII, gitignored) |
 | `pnpm go-live-smoke` | HTTP smoke tests against production (`https://seamvex.com`) |
 
@@ -150,7 +167,8 @@ Brand accent on PDFs: `#E5007D` ([`lib/brand.ts`](lib/brand.ts) `BRAND_COLORS.pi
 | [`docs/CRM.md`](docs/CRM.md) | Workflows, roles, integrations |
 | [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md) | **Manual** — Section B after OAuth |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | **Manual** — Section C Cloud Run |
-| [`outstanding.md`](outstanding.md) | **Start here** — what's left for go-live (manual GCP only) |
+| [`outstanding.md`](outstanding.md) | **Start here** — go-live facts + Xero import steps |
+| [`excluded-companies.md`](excluded-companies.md) | 12 companies not imported from old Xero export |
 | [`docs/GET-READY.md`](docs/GET-READY.md) | **Manual** — ordered go-live checklist (local, deploy, Twilio) |
 | [`docs/PROPOSALS.md`](docs/PROPOSALS.md) | Agreement PDF workflow |
 | [`e-sign.md`](e-sign.md) | Documenso CE deploy (not live on `sign.seamvex.com` yet) |
@@ -178,10 +196,9 @@ App does **not** send from `@seamcor.com` in v1.
 3. **Fix Cloud Build trigger** — use `/cloudbuild.yaml` → `seamvex-website-2` ew1; delete ew2 orphan
 4. **Documenso CE** — [`e-sign.md`](e-sign.md): deploy on `sign.seamvex.com`
 5. **GCS IAM** — bucket `seamvex-contracts-eu`, Run SA `storage.objectUser`
-6. **Xero** — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md): connect org, sync, test sign → DRAFT invoice
+6. **Xero** — [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md): connect org, selective import + push
 7. **Twilio** — voice webhook + routing in `/admin/settings`
 8. **Gmail** — each admin connects in Settings
-9. **Greenfield** (when ready): `pnpm reset-crm-data --import-xero`
 
 ---
 
@@ -189,7 +206,7 @@ App does **not** send from `@seamcor.com` in v1.
 
 - **Deploy trigger misconfigured** — `git push` updates ew2 orphan only; run `deploy/deploy-live.ps1` after push. See [`docs/DEPLOY.md`](docs/DEPLOY.md).
 - **Documenso not deployed** — agreement send/sign blocked until `sign.seamvex.com` is live and `DOCUMENSO_API_KEY` is set.
-- **Xero not connected in prod** — contacts/invoices need Xero vars on Run + org connect.
+- **Xero not connected in prod** — connect + selective import (`xero-import-selected.csv`) + push; see [`outstanding.md`](outstanding.md).
 - **Edge middleware** imports `crypto` via `lib/auth/security.ts` — build warns; works today but may need Edge-safe rate limit later.
 - **Standard users** cannot access the Resources page (admin only). Settings is open to all users (own phone + inbound toggle); voice routing, user phones, and resource links are admin-only sections.
 - **Documenso customer email** disabled via `distributionMethod: "NONE"` — verify once with real Documenso CE instance.

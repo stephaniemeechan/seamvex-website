@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { requireSessionApi, requireSessionMutation } from "@/lib/auth/api-guards"
 import { contactToSnapshot, getContact, updateContact } from "@/lib/crm/contacts"
-import { updateXeroContact, xeroConfig } from "@/lib/xero/client"
+import { createXeroContact, updateXeroContact, xeroConfig } from "@/lib/xero/client"
+import { execute } from "@/lib/db"
 
 export const runtime = "nodejs"
 
@@ -60,14 +61,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
   }
 
-  const contact = await updateContact(id, patch)
+  let contact = await updateContact(id, patch)
   if (!contact) return NextResponse.json({ error: "Not found" }, { status: 404 })
 
-  if (isAdmin && existing.xeroContactId && xeroConfig()) {
+  if (isAdmin && xeroConfig()) {
     try {
-      await updateXeroContact(existing.xeroContactId, contactToSnapshot(contact))
+      if (existing.xeroContactId) {
+        await updateXeroContact(existing.xeroContactId, contactToSnapshot(contact))
+      } else {
+        const xc = await createXeroContact(contactToSnapshot(contact))
+        const now = new Date().toISOString()
+        await execute(
+          "UPDATE contacts SET xero_contact_id = ?, xero_synced_at = ?, updated_at = ? WHERE id = ?",
+          [xc.ContactID, now, now, id],
+        )
+        contact = (await getContact(id))!
+      }
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Xero update contact failed"
+      const message = e instanceof Error ? e.message : "Xero contact sync failed"
       return NextResponse.json({ error: message }, { status: 502 })
     }
   }

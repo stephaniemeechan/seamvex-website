@@ -14,8 +14,12 @@ type Contact = {
   contactEmail: string | null
   customerNumber: string | null
   billingAddress1: string | null
+  billingAddress2: string | null
+  billingAddress3: string | null
   postcode: string | null
   country: string | null
+  accountsContact: string | null
+  accountsEmail: string | null
 }
 
 type Attachment = {
@@ -32,6 +36,23 @@ type Ticket = {
   updatedAt: string
 }
 
+const DETAIL_FIELDS = [
+  ["companyName", "Company name"],
+  ["contactName", "Contact name"],
+  ["contactEmail", "Contact email"],
+  ["contactPhone", "Phone"],
+  ["customerNumber", "Customer number"],
+  ["accountsContact", "Accounts contact"],
+  ["accountsEmail", "Accounts email"],
+  ["billingAddress1", "Address line 1"],
+  ["billingAddress2", "Address line 2"],
+  ["billingAddress3", "Address line 3"],
+  ["postcode", "Postcode"],
+  ["country", "Country"],
+] as const
+
+type DetailField = (typeof DETAIL_FIELDS)[number][0]
+
 export function ContactDetailClient({
   id,
   companyPhone,
@@ -42,6 +63,20 @@ export function ContactDetailClient({
   isAdmin: boolean
 }) {
   const [contact, setContact] = useState<Contact | null>(null)
+  const [editForm, setEditForm] = useState<Record<DetailField, string>>({
+    companyName: "",
+    contactName: "",
+    contactEmail: "",
+    contactPhone: "",
+    customerNumber: "",
+    accountsContact: "",
+    accountsEmail: "",
+    billingAddress1: "",
+    billingAddress2: "",
+    billingAddress3: "",
+    postcode: "",
+    country: "",
+  })
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [supportInfo, setSupportInfo] = useState("")
@@ -52,6 +87,25 @@ export function ContactDetailClient({
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState("")
   const [calling, setCalling] = useState(false)
+
+  function applyContact(c: Contact) {
+    setContact(c)
+    setSupportInfo(c.supportInfo ?? "")
+    setEditForm({
+      companyName: c.companyName ?? "",
+      contactName: c.contactName ?? "",
+      contactEmail: c.contactEmail ?? "",
+      contactPhone: c.contactPhone ?? "",
+      customerNumber: c.customerNumber ?? "",
+      accountsContact: c.accountsContact ?? "",
+      accountsEmail: c.accountsEmail ?? "",
+      billingAddress1: c.billingAddress1 ?? "",
+      billingAddress2: c.billingAddress2 ?? "",
+      billingAddress3: c.billingAddress3 ?? "",
+      postcode: c.postcode ?? "",
+      country: c.country ?? "",
+    })
+  }
 
   async function load() {
     setLoading(true)
@@ -66,8 +120,7 @@ export function ContactDetailClient({
       const attachData = await attachRes.json()
       const ticketsData = await ticketsRes.json()
       if (!contactRes.ok) throw new Error(contactData.error ?? "Contact not found")
-      setContact(contactData.contact)
-      setSupportInfo(contactData.contact.supportInfo ?? "")
+      applyContact(contactData.contact)
       setAttachments(attachData.attachments ?? [])
       setTickets(ticketsData.tickets ?? [])
     } catch (e) {
@@ -81,6 +134,31 @@ export function ContactDetailClient({
     load()
   }, [id])
 
+  async function saveDetails() {
+    setSaving(true)
+    setMessage("")
+    setError("")
+    try {
+      const body: Record<string, string> = {}
+      for (const [key] of DETAIL_FIELDS) {
+        body[key] = editForm[key]
+      }
+      const res = await csrfFetch(`/api/contacts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Failed to save")
+      applyContact(data.contact)
+      setMessage("Contact saved and synced to Xero.")
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function saveSupportInfo() {
     setSaving(true)
     setMessage("")
@@ -92,7 +170,7 @@ export function ContactDetailClient({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed to save")
-      setContact(data.contact)
+      applyContact(data.contact)
       setMessage("Support info saved.")
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save")
@@ -136,7 +214,8 @@ export function ContactDetailClient({
   }
 
   async function clickToCall() {
-    if (!contact?.contactPhone) return
+    const phone = editForm.contactPhone || contact?.contactPhone
+    if (!phone) return
     setCalling(true)
     setError("")
     setMessage("")
@@ -144,7 +223,7 @@ export function ContactDetailClient({
       const res = await csrfFetch("/api/twilio/call", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: contact.contactPhone }),
+        body: JSON.stringify({ to: phone }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed to initiate call")
@@ -175,56 +254,70 @@ export function ContactDetailClient({
       {error && <p className="text-sm text-destructive">{error}</p>}
       {message && <p className="text-sm text-green-700">{message}</p>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-border p-4">
-          <p className="text-sm font-medium text-primary">Contact details</p>
-          <dl className="mt-3 space-y-1 text-sm text-muted-foreground">
-            <div>
-              <dt className="inline font-medium text-foreground">Name: </dt>
-              <dd className="inline">{contact.contactName ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="inline font-medium text-foreground">Email: </dt>
-              <dd className="inline">{contact.contactEmail ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="inline font-medium text-foreground">Phone: </dt>
-              <dd className="inline">{contact.contactPhone ?? "—"}</dd>
-              {contact.contactPhone && (
-                <button
-                  type="button"
-                  onClick={clickToCall}
-                  disabled={calling}
-                  className="ml-3 rounded-md border border-border px-2 py-0.5 text-xs font-medium hover:bg-secondary disabled:opacity-50"
-                >
-                  {calling ? "Calling…" : "Click to call"}
-                </button>
-              )}
-            </div>
-            <div>
-              <dt className="inline font-medium text-foreground">Address: </dt>
-              <dd className="inline">
-                {[contact.billingAddress1, contact.postcode, contact.country].filter(Boolean).join(", ") ||
-                  "—"}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <div className="rounded-xl border border-border p-4">
-          <p className="text-sm font-medium text-primary">Company line</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {companyPhone ? (
-              <>
-                Outbound calls show{" "}
-                <span className="font-mono text-foreground">{companyPhone}</span> as caller ID.
-              </>
-            ) : (
-              "Set TWILIO_PHONE_NUMBER in environment to enable calling."
+      {isAdmin ? (
+        <div className="rounded-xl border border-border p-4 space-y-4">
+          <p className="text-sm font-medium text-primary">Contact details (saved to CRM + Xero)</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {DETAIL_FIELDS.map(([key, label]) => (
+              <label key={key} className={`text-sm ${key === "companyName" ? "sm:col-span-2" : ""}`}>
+                <span className="text-muted-foreground">{label}</span>
+                <input
+                  value={editForm[key]}
+                  onChange={(e) => setEditForm({ ...editForm, [key]: e.target.value })}
+                  className="mt-1 block w-full rounded-md border border-border px-3 py-2 text-sm"
+                />
+              </label>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={saveDetails}
+              disabled={saving}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              {saving ? "Saving…" : "Save contact"}
+            </button>
+            {editForm.contactPhone && (
+              <button
+                type="button"
+                onClick={clickToCall}
+                disabled={calling}
+                className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary disabled:opacity-50"
+              >
+                {calling ? "Calling…" : "Click to call"}
+              </button>
             )}
-          </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-xl border border-border p-4">
+            <p className="text-sm font-medium text-primary">Contact details</p>
+            <dl className="mt-3 space-y-1 text-sm text-muted-foreground">
+              {DETAIL_FIELDS.map(([key, label]) => (
+                <div key={key}>
+                  <dt className="inline font-medium text-foreground">{label}: </dt>
+                  <dd className="inline">{editForm[key] || "—"}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div className="rounded-xl border border-border p-4">
+            <p className="text-sm font-medium text-primary">Company line</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {companyPhone ? (
+                <>
+                  Outbound calls show{" "}
+                  <span className="font-mono text-foreground">{companyPhone}</span> as caller ID.
+                </>
+              ) : (
+                "Set TWILIO_PHONE_NUMBER in environment to enable calling."
+              )}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border border-border p-4 space-y-3">
         <p className="text-sm font-medium text-primary">Support info</p>

@@ -9,6 +9,8 @@
     "start": "next start",
     "export-xero-customers": "tsx scripts/export-xero-customers.ts",
     "reset-crm-data": "tsx scripts/reset-crm-data.ts",
+    "push-contacts-to-xero": "tsx scripts/push-contacts-to-xero.ts",
+    "build-import-manifest": "tsx scripts/build-import-manifest.ts",
     "sync-legal-bundle": "tsx scripts/sync-legal-bundle.ts",
     "check-legal-bundle": "tsx scripts/check-legal-bundle.ts",
     "go-live-smoke": "node scripts/go-live-smoke-test.mjs"

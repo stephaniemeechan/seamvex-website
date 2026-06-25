@@ -35,25 +35,50 @@ Then:
 
 1. https://seamvex.com/admin/settings → **Connect Xero**
 2. Authorise **seamvex data systems ltd** only (new empty org)
-3. **Sync contacts** or selective import (see below)
+3. Selective import + push (see below)
 
 Xero app: **seamvex-portal** (or replacement web app) · redirect `https://seamvex.com/api/xero/callback` only — no localhost.
 
 Scopes needed: `accounting.contacts`, `accounting.contacts.read`, `accounting.settings.read`, `accounting.invoices` (+ `offline_access` if offered).
 
+### Xero contacts — two-way sync (code facts)
+
+| Direction | How | Status |
+|-----------|-----|--------|
+| **Xero → CRM** | Settings → **Sync contacts from Xero** (`POST /api/xero/sync`) | Implemented |
+| **CRM → Xero (create)** | Admin **New contact** or `POST /api/contacts` | Implemented |
+| **CRM → Xero (update)** | Admin contact **Save** or `PATCH /api/contacts/[id]` | Implemented |
+| **Export** | `pnpm export-xero-customers` | Read-only |
+| **Import to CRM** | `pnpm reset-crm-data --import-xero …` | Does **not** push to Xero |
+| **Bulk push** | `pnpm push-contacts-to-xero` | Creates contacts in new Xero org |
+
+**Deploy path:** local dev → `git push main` → Cloud Build → **`seamvex-website-2`**. Import/push run against **prod Cloud SQL**, not local SQLite — no local DB as acceptance test.
+
 ---
 
-## Do next — customer contacts
+## Do next — customer contacts (selective import)
 
 - Export on disk: `xero-customers-export.json` / `.csv` — **131 customers**, two old orgs (not the new Xero org).
-- Import **selected** only — do not import all 131.
+- Import **43 unique contacts** from [`list-of-companies.csv`](list-of-companies.csv) via [`xero-import-selected.csv`](xero-import-selected.csv).
+- **12 excluded** — see [`excluded-companies.md`](excluded-companies.md) (10 absent from export + Puratos Liverpool skipped + Gressingham Foods).
+- Westland Driffield + Ellesmere → one Xero contact (`Westland Horticulture Limited`).
+- Duplicate org rule: prefer **Seamcor Limited** when same company appears in both old orgs.
 - Old `xeroContactId` values are invalid in the new org; strip on import.
+
+**Preflight (no DB):**
+
+```bash
+pnpm reset-crm-data --import-xero --include-csv=xero-import-selected.csv --strip-xero-ids --dry-run
+```
+
+**Prod import** (Cloud SQL `DATABASE_URL` + Xero connected):
 
 ```bash
 pnpm reset-crm-data --import-xero --include-csv=xero-import-selected.csv --strip-xero-ids
+pnpm push-contacts-to-xero --include-csv=xero-import-selected.csv
 ```
 
-Run against prod Postgres only when ready. Build shortlist CSV from `xero-customers-export.csv` (`companyName` column).
+Regenerate manifest after list/export changes: `pnpm build-import-manifest`
 
 ---
 
@@ -77,7 +102,6 @@ Until then: proposals + contract PDFs work; **Send for signature** fails in prod
 | Item | Notes |
 |------|--------|
 | Twilio voice | `TWILIO_*` on Run + webhook on `+441870470573` |
-| Deploy code on `main` | Prod UI still shows old “`.env.local`” Xero message until next deploy; fix is in repo |
 | Cloud Build trigger | `git push` → `cloudbuild.yaml` → `seamvex-website-2` — create if push does not deploy |
 | GCS IAM | Verify before first signed PDF (Documenso path) |
 
@@ -102,6 +126,7 @@ Secrets stay in Cloud Run / `.env.local` — not in git.
 | File | Use |
 |------|-----|
 | [`docs/XERO-SETUP.md`](docs/XERO-SETUP.md) | Xero org + connect |
+| [`excluded-companies.md`](excluded-companies.md) | 12 companies not imported |
 | [`e-sign.md`](e-sign.md) | Documenso when ready |
 | [`docs/DEPLOY.md`](docs/DEPLOY.md) | Cloud Run deploy |
 | [`deploy/apply-xero-env.ps1`](deploy/apply-xero-env.ps1) | Apply Xero vars via `gcloud` (after `gcloud auth login`) |

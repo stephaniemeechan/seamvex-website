@@ -20,7 +20,7 @@ Production only for go-live. Run after Google login E2E works and Xero vars are 
 **Two-way sync (how code works):**
 
 - **Xero → CRM:** Settings → **Sync contacts from Xero** (`POST /api/xero/sync`)
-- **CRM → Xero:** Admin creates/edits contact → pushes to Xero Contacts API
+- **CRM → Xero:** Admin **New contact** / contact **Save** (`POST` / `PATCH /api/contacts/[id]`), or `pnpm push-contacts-to-xero` after import
 - **Invoices:** Documenso sign webhook → **DRAFT** invoice (free-text line descriptions; **not** Xero Item codes)
 
 ## 1. Connect OAuth
@@ -63,14 +63,27 @@ Scopes are requested by code (`lib/xero/client.ts` `XERO_SCOPES`).
 
 **Blocked until:** Documenso live, Xero connected, login E2E done.
 
-## 5. Customer list (greenfield + export)
+## 5. Customer list (selective import)
 
-**Ask before running** — depends on where master data lives:
+Import **43 unique contacts** from the old Xero export — not all 131. Source list: [`list-of-companies.csv`](../list-of-companies.csv). Manifest: [`xero-import-selected.csv`](../xero-import-selected.csv). **12 excluded:** [`excluded-companies.md`](../excluded-companies.md).
 
-| Situation | Action |
-|-----------|--------|
-| Export is CRM seed data, Xero empty | `pnpm reset-crm-data --import-xero` against prod Postgres, **or** import then push via admin saves |
-| Contacts already in Xero | Sync from Xero only |
-| Both empty | Import export into CRM first, then push to Xero |
+| Step | Command / action |
+|------|------------------|
+| Regenerate manifest | `pnpm build-import-manifest` |
+| Preflight (no DB) | `pnpm reset-crm-data --import-xero --include-csv=xero-import-selected.csv --strip-xero-ids --dry-run` |
+| Prod CRM import | `pnpm reset-crm-data --import-xero --include-csv=xero-import-selected.csv --strip-xero-ids` (prod `DATABASE_URL`) |
+| Push to new Xero org | `pnpm push-contacts-to-xero --include-csv=xero-import-selected.csv` (after OAuth connect) |
+| Ongoing edits | Admin → Contacts → **New contact** or open contact → **Save contact** |
 
-Import reads `xero-customers-export.json` (`organisations[].agreementSnapshots`). Sets contact status **inactive** until a signed contract exists.
+**Export files:** import reads **`xero-customers-export.json` only**. CSV is for validation; MD is human reference.
+
+**Rules:**
+
+- Westland Driffield + Ellesmere → one contact (`Westland Horticulture Limited`).
+- Puratos (Liverpool) skipped — export has Puratos (Buckingham) only.
+- When the same company appears in both old orgs, prefer **Seamcor Limited**.
+- Strip old `xeroContactId` on import (`--strip-xero-ids`) — IDs from old orgs are invalid in **seamvex data systems ltd**.
+
+**Deploy path:** develop locally → `git push main` → Cloud Build → **`seamvex-website-2`**. Run import/push against prod Cloud SQL, not local SQLite.
+
+Import sets contact status **inactive** until a signed contract exists.
