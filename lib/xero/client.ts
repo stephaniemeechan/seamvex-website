@@ -309,6 +309,17 @@ export async function saveXeroTokens(
   )
 }
 
+export async function isXeroConnected(): Promise<boolean> {
+  return (await getXeroAccessToken()) !== null
+}
+
+export async function getXeroTenantName(): Promise<string | null> {
+  const row = await queryOne<{ tenant_name: string | null }>(
+    "SELECT tenant_name FROM xero_tokens WHERE id = 1",
+  )
+  return row?.tenant_name?.trim() || null
+}
+
 export async function getLockedTenantId(): Promise<string | null> {
   return getSetting(LOCKED_TENANT_KEY)
 }

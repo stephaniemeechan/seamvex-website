@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth/get-session"
 import { canManageContracts } from "@/lib/auth/rbac"
 import { listContracts, listOrders } from "@/lib/proposals/orders"
 import { xeroNotConfiguredMessage } from "@/lib/integration-status"
-import { xeroConfig } from "@/lib/xero/client"
+import { isXeroConnected, getXeroTenantName, xeroConfig } from "@/lib/xero/client"
 
 export const dynamic = "force-dynamic"
 
@@ -29,8 +29,10 @@ async function DashboardInner({
   const orders = await listOrders()
   const contracts = await listContracts()
   const signed = contracts.filter((c) => c.rolloutStatus === "signed").length
-  const pending = contracts.length - signed
+  const awaitingSignature = orders.filter((o) => o.status === "sent").length
   const xeroReady = Boolean(xeroConfig())
+  const xeroConnected = await isXeroConnected()
+  const xeroTenantName = xeroConnected ? await getXeroTenantName() : null
 
   return (
     <div className="space-y-8">
@@ -46,6 +48,10 @@ async function DashboardInner({
             {!xeroReady ? (
               <span className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                 {xeroNotConfiguredMessage()}
+              </span>
+            ) : xeroConnected ? (
+              <span className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900">
+                Xero connected{xeroTenantName ? ` — ${xeroTenantName}` : ""}
               </span>
             ) : (
               <a
@@ -96,8 +102,8 @@ async function DashboardInner({
           <p className="mt-1 text-3xl font-bold text-primary">{signed}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-5">
-          <p className="text-sm text-muted-foreground">Pending re-sign</p>
-          <p className="mt-1 text-3xl font-bold text-primary">{pending}</p>
+          <p className="text-sm text-muted-foreground">Awaiting signature</p>
+          <p className="mt-1 text-3xl font-bold text-primary">{awaitingSignature}</p>
         </div>
       </div>
 

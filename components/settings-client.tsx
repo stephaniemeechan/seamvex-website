@@ -44,6 +44,8 @@ const DAY_OPTIONS = [
 export function SettingsClient({
   isAdmin,
   xeroReady,
+  xeroConnected,
+  xeroTenantName,
   companyPhone,
   gmailConnected,
   gmailStatus,
@@ -51,6 +53,8 @@ export function SettingsClient({
 }: {
   isAdmin: boolean
   xeroReady: boolean
+  xeroConnected: boolean
+  xeroTenantName: string | null
   companyPhone: string | null
   gmailConnected: boolean
   gmailStatus?: string
@@ -319,13 +323,19 @@ export function SettingsClient({
         {!xeroReady ? (
           <p className="text-sm text-muted-foreground">{xeroNotConfiguredMessage()}</p>
         ) : isAdmin ? (
-          <div className="flex flex-wrap gap-2">
-            <a
-              href="/api/xero/connect"
-              className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary"
-            >
-              Connect Xero
-            </a>
+          <div className="flex flex-wrap items-center gap-2">
+            {xeroConnected ? (
+              <p className="text-sm text-green-800">
+                Xero connected{xeroTenantName ? ` — ${xeroTenantName}` : ""}
+              </p>
+            ) : (
+              <a
+                href="/api/xero/connect"
+                className="inline-block rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-secondary"
+              >
+                Connect Xero
+              </a>
+            )}
             <button
               type="button"
               onClick={syncXeroContacts}

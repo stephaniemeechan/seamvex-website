@@ -55,6 +55,7 @@ export function OrderDetailClient({ id, canManageContracts = false }: { id: stri
   const [manualSignerName, setManualSignerName] = useState("")
   const [manualCreateInvoice, setManualCreateInvoice] = useState(true)
   const [manualSigning, setManualSigning] = useState(false)
+  const [resending, setResending] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -125,6 +126,26 @@ export function OrderDetailClient({ id, canManageContracts = false }: { id: stri
       else if (data.gmailError)
         setActionError(`Sent for signature but Gmail failed: ${data.gmailError}`)
     } else setActionError(data.error ?? "Failed to send")
+  }
+
+  async function resendToCustomer() {
+    setResending(true)
+    setActionError("")
+    try {
+      const res = await csrfFetch(`/api/orders/${id}/resend`, { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) {
+        setActionError(data.error ?? "Failed to resend")
+        return
+      }
+      setSignUrl(data.signUrl)
+      if (data.order) setOrder(data.order)
+      if (data.gmailSent) setCopied("Signing link resent by email.")
+      else if (data.gmailError)
+        setActionError(`Sign link ready but Gmail failed: ${data.gmailError}`)
+    } finally {
+      setResending(false)
+    }
   }
 
   async function manualMarkSigned(e: React.FormEvent) {
@@ -354,6 +375,16 @@ export function OrderDetailClient({ id, canManageContracts = false }: { id: stri
             className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground"
           >
             Send for signature
+          </button>
+        )}
+        {isSent && canManageContracts && (
+          <button
+            type="button"
+            onClick={resendToCustomer}
+            disabled={resending}
+            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-50"
+          >
+            {resending ? "Resending…" : "Resend for signature"}
           </button>
         )}
       </div>
