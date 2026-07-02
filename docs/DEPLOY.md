@@ -4,41 +4,35 @@ Region: **europe-west1** only · Service: **`seamvex-website-2`** · Port: **808
 
 GCP console may show project name **My First Project** — project ID is **`exalted-splicer-499401-e2`**.
 
-Live service with all four domain mappings (`seamvex.com`, `www.seamvex.com`, `seamcor.com`, `www.seamcor.com`).
+**Live snapshot:** [`GO-LIVE.md`](./GO-LIVE.md) — remaining actions, env vars, reference IDs.
 
-## Cloud Run services (2026-06-21)
+## Services
 
 | Service | Region | Auth | Role |
 |---------|--------|------|------|
-| **`seamvex-website-2`** | europe-west1 | Public | **Live** — only service |
+| **`seamvex-website-2`** | europe-west1 | Public | **Live** — CRM + marketing site |
+| **`seamvex-documenso`** | europe-west1 | Public | **Live** — `sign.seamvex.com`; manual deploy via [`deploy/documenso/`](../deploy/documenso/) |
 
-Orphan **`seamvex-website` (ew2) + its Cloud Build trigger deleted 2026-06-21.** A prior `git push` had redeployed the orphan because the trigger still existed.
+Domain mappings on **`seamvex-website-2`**: `seamvex.com`, `www.seamvex.com`, `seamcor.com`, `www.seamcor.com` (all Active).
 
-**Deploy path:** `git push main` → Cloud Build trigger → `/cloudbuild.yaml` → `seamvex-website-2` (ew1).
+Orphan **`seamvex-website` (ew2)** and its trigger were deleted 2026-06-21.
 
-Create the trigger once if missing — see below.
+## Deploy code (default path)
 
-**Live snapshot:** [`outstanding.md`](../outstanding.md) — rev, commit, smoke, env count.
-
-## Current production status
-
-| Check | Status |
-|-------|--------|
-| Service `seamvex-website-2` (ew1, public) | **Live** — revision `00020-crd` (OAuth redirect fix) |
-| Cloud Run env (12 vars) | **Applied** — rev `00019-nbr`, preserved on `00020-crd` |
-| `pnpm go-live-smoke` | **6/6 pass** (HTTP only — not login E2E or DB) |
-| Google OAuth | **307** → Google; callback → `seamvex.com` (not `0.0.0.0:8080`) |
-| Admin login E2E | **Verify in browser** — [https://seamvex.com/admin/login](https://seamvex.com/admin/login) |
-| `sign.seamvex.com` (Documenso) | **Not deployed** |
-| Cloud Build trigger | **`deploy-seamvex-website-2-main`** — create once via script below |
-
-## Deploy trigger (one-time)
-
-```powershell
-.\deploy\setup-cloud-build-trigger.ps1
+```
+git push main  →  Cloud Build trigger deploy-seamvex-website-2-main  →  cloudbuild.yaml  →  seamvex-website-2
 ```
 
-Or Cloud Shell:
+[`cloudbuild.yaml`](../cloudbuild.yaml) builds the Docker image and deploys with:
+
+- `--add-cloudsql-instances=exalted-splicer-499401-e2:europe-west1:free-trial-first-project`
+- Port 8080, europe-west1, public
+
+**Env vars are not deployed by git push.** Set them in **Cloud Run console** → **Variables & secrets**. When editing, keep **all** vars — a revision deploy replaces the full list.
+
+## Cloud Build trigger (one-time, if missing)
+
+Cloud Shell:
 
 ```bash
 gcloud config set project exalted-splicer-499401-e2
@@ -50,66 +44,13 @@ gcloud builds triggers create github \
   --build-config="cloudbuild.yaml"
 ```
 
-Then push to `main` and run `pnpm go-live-smoke`.
+Then `git push main` and `pnpm go-live-smoke`.
 
-One-time: ensure Cloud SQL attached via `deploy/apply-prod-env.ps1` if not already.
+## Environment variables (Cloud Run console)
 
-Repo [`cloudbuild.yaml`](../cloudbuild.yaml) is correct. **`deploy-live.ps1` was a workaround** when only the ew2 orphan trigger existed — do not use after ew1 trigger is live.
+**19 vars on Run** — full table in [`GO-LIVE.md`](./GO-LIVE.md).
 
-[`cloudbuild.yaml`](../cloudbuild.yaml) deploy step does **not** attach Cloud SQL. First-time setup (or if socket missing):
-
-```powershell
-node deploy/generate-prod-env.mjs
-.\deploy\apply-prod-env.ps1   # adds --add-cloudsql-instances + env file
-```
-
-Connection name: `exalted-splicer-499401-e2:europe-west1:free-trial-first-project`
-
-## Apply environment variables
-
-Env vars are **not** set by `git push` or `deploy-live.ps1`.
-
-When vars change:
-
-```powershell
-node deploy/generate-prod-env.mjs   # reads .secrets/ + .env.local → cloud-run-env.prod.yaml
-.\deploy\apply-prod-env.ps1
-```
-
-| Script | Purpose |
-|--------|---------|
-| [`deploy/generate-prod-env.mjs`](../deploy/generate-prod-env.mjs) | Build gitignored YAML (12 vars) |
-| [`deploy/apply-prod-env.ps1`](../deploy/apply-prod-env.ps1) | Apply YAML + Cloud SQL (Windows) |
-| [`deploy/apply-prod-env.sh`](../deploy/apply-prod-env.sh) | Same (bash / Cloud Shell) |
-| [`deploy/setup-cloud-build-trigger.ps1`](../deploy/setup-cloud-build-trigger.ps1) | One-time Cloud Build trigger on push to main |
-| [`deploy/deploy-live.ps1`](../deploy/deploy-live.ps1) | **Obsolete** — ew2 image workaround; do not use |
-| [`deploy/deploy-live.sh`](../deploy/deploy-live.sh) | **Obsolete** — same |
-
-**Do not use** `--update-env-vars=ADMIN_EMAIL=a@x.com,j@y.com` — gcloud splits on commas. Use `--env-vars-file`.
-
-Template: [`deploy/cloud-run-env.template`](../deploy/cloud-run-env.template)
-
-## Prerequisites
-
-1. `pnpm sync-legal-bundle` — commit `deploy/legal/` + `public/logos/` before deploy.
-2. Cloud SQL Postgres (`seamvex_crm`).
-3. GCS bucket `seamvex-contracts-eu` (europe-west1).
-4. Google OAuth JSON in `.secrets/client_secret_*.json`.
-5. Documenso — separate service; see [e-sign.md](../e-sign.md).
-
-## GCS IAM
-
-Cloud Run service account needs **`roles/storage.objectUser`** on `seamvex-contracts-eu` (not verified 2026-06-21).
-
-```bash
-gcloud storage buckets add-iam-policy-binding gs://seamvex-contracts-eu \
-  --member="serviceAccount:YOUR_RUN_SA@exalted-splicer-499401-e2.iam.gserviceaccount.com" \
-  --role="roles/storage.objectUser"
-```
-
-## Environment (Cloud Run)
-
-**`PROD_REQUIRED`** (`lib/env.ts` — 10 vars; app throws on first DB access if missing):
+**`PROD_REQUIRED`** (`lib/env.ts` — app throws on first DB access if missing):
 
 ```env
 SESSION_SECRET=
@@ -124,51 +65,61 @@ DOCUMENSO_WEBHOOK_SECRET=
 NEXT_PUBLIC_APP_URL=https://seamvex.com
 ```
 
-**Also applied in prod** (12 total via `generate-prod-env.mjs`; not in `PROD_REQUIRED`):
+**Also on Run** (not in `PROD_REQUIRED`):
 
 ```env
 GMAIL_REDIRECT_URI=https://seamvex.com/api/gmail/connect/callback
 ADMIN_EMAIL=s.meechan@seamvex.com,j.cyprus@seamvex.com
-```
-
-**For full CRM** (not on Run yet):
-
-```env
 XERO_CLIENT_ID=
 XERO_CLIENT_SECRET=
 XERO_REDIRECT_URI=https://seamvex.com/api/xero/callback
+XERO_SALES_ACCOUNT_CODE=200
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=
 TWILIO_PHONE_NUMBER=+441870470573
 ```
 
-**Do not set on Cloud Run:** `ADMIN_PASSWORD`.
+**Do not set on Cloud Run:** `ADMIN_PASSWORD` (password login disabled in production).
 
 Register Gmail redirect on the same Google OAuth client as SSO.
 
-## Options
+**Do not use** `--update-env-vars=ADMIN_EMAIL=a@x.com,j@y.com` — gcloud splits on commas. Use the Cloud Run console or `--env-vars-file`.
 
-### A — Cloud Build trigger (default)
+Local master copy: `.env.local` / `.secrets/` (gitignored) — paste into console manually.
 
-`git push main` → trigger `deploy-seamvex-website-2-main` → `/cloudbuild.yaml` → **`seamvex-website-2`** · **europe-west1**.
+## Prerequisites
 
-### B — Connect repository (avoid)
+1. `deploy/legal/` + `public/logos/` committed (build runs `check-legal-bundle`).
+2. Cloud SQL Postgres — database `seamvex_crm` on instance `free-trial-first-project`.
+3. GCS bucket `seamvex-contracts-eu` (europe-west1).
+4. Google OAuth client with prod redirect URIs.
+5. Documenso — separate Cloud Run service; see [e-sign.md](../e-sign.md).
 
-Cloud Run "Connect repository" ignores `cloudbuild.yaml` and may create a duplicate service in the wrong region. Use Cloud Build trigger (A) instead.
+## GCS IAM
+
+Cloud Run **`seamvex-website-2`** service account needs **`roles/storage.objectUser`** on `seamvex-contracts-eu`.
+
+```bash
+gcloud storage buckets add-iam-policy-binding gs://seamvex-contracts-eu \
+  --member="serviceAccount:582518890553-compute@developer.gserviceaccount.com" \
+  --role="roles/storage.objectUser"
+```
 
 ## After deploy
 
 1. `pnpm go-live-smoke` — expect 6/6
 2. Browser: [https://seamvex.com/admin/login](https://seamvex.com/admin/login)
-3. Fix trigger; delete ew2 orphan
 
 ## Documenso (manual)
 
-Deploy `seamvex-documenso` to `sign.seamvex.com`. See [e-sign.md](../e-sign.md).
+Deploy `seamvex-documenso` to `sign.seamvex.com`. Database `documenso` on **same Cloud SQL instance** as CRM. See [e-sign.md](../e-sign.md) and [DNS-SETUP.md](./DNS-SETUP.md) §5.
 
 ## Do not
 
 - Deploy without `deploy/legal/` (build fails `check-legal-bundle`)
 - Use SQLite on Cloud Run
-- Use `deploy-live.ps1` (obsolete ew2 image path)
-- Use Cloud Run "Connect repository" instead of Cloud Build trigger + `cloudbuild.yaml`
+- Use Cloud Run "Connect repository" instead of Cloud Build trigger + `cloudbuild.yaml` (may create wrong region/service)
+
+## Removed deploy scripts
+
+Root `deploy-live.ps1`, `apply-prod-env.ps1`, etc. were removed. **Documenso** scripts live in [`deploy/documenso/`](../deploy/documenso/). CRM env → Cloud Run console; CRM code → **`git push main`**.

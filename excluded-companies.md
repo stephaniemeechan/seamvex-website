@@ -2,7 +2,7 @@
 
 **Source list:** [`list-of-companies.csv`](list-of-companies.csv) (56 names)  
 **Import set:** 44 list rows → **43 unique Xero contacts** (Westland Driffield + Ellesmere → one contact)  
-**See also:** [`xero-import-selected.csv`](xero-import-selected.csv), [`outstanding.md`](outstanding.md)
+**See also:** [`xero-import-selected.csv`](xero-import-selected.csv), [`docs/GO-LIVE.md`](docs/GO-LIVE.md)
 
 These 12 companies from the list are **not** imported into the CRM from `xero-customers-export.json`.
 

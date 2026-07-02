@@ -154,10 +154,17 @@ export function verifyWebhookSignature(receivedSecret: string | null, expectedSe
 }
 
 export type DocumensoWebhookPayload = {
-  id: string
+  id: string | number
+  envelopeId?: string
   externalId?: string | null
   completedAt?: string | null
-  Recipient?: { name?: string; email?: string; signedAt?: string | null; signingStatus?: string }[]
+  Recipient?: {
+    name?: string
+    email?: string
+    signedAt?: string | null
+    signingStatus?: string
+    envelopeId?: string
+  }[]
 }
 
 export function extractSignatureFromWebhook(

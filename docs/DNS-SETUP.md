@@ -2,7 +2,7 @@
 
 Service: **`seamvex-website-2`** · Region: **`europe-west1`**
 
-**Status (2026-06-21):** All four domain mappings are **Active** on **`seamvex-website-2`** in **`europe-west1`** (`seamvex.com`, `www.seamvex.com`, `seamcor.com`, `www.seamcor.com`). HTTPS returns 200. Do not point domains at the ew2 orphan `seamvex-website`.
+**Status (2026-06-29):** Main domains **Active**. **`sign.seamvex.com`** **Active** — see §5.
 
 ## 1. Google Cloud (do first)
 
@@ -115,3 +115,33 @@ If GCP **DNS Records** on the mapping shows different IPs, use those instead of 
 5. `dig seamcor.com A` → includes `216.239.32.21` (etc.)
 6. All four domain mappings → **Active** (SSL can take up to 24h)
 7. `https://seamcor.com`, `https://www.seamcor.com`, `https://seamvex.com`, `https://www.seamvex.com` all show the Seamcor site
+
+## 5. sign.seamvex.com (Documenso — live)
+
+Service: **`seamvex-documenso`** · Region: **`europe-west1`**
+
+**Status (2026-07):** **Active** — CNAME `sign` → `ghs.googlehosted.com` on Squarespace. See [e-sign.md](../e-sign.md) and [GO-LIVE.md](./GO-LIVE.md).
+
+### 5a. Cloud Run domain mapping
+
+Cloud Run → **Domain mappings** → **Add mapping**:
+
+| Subdomain field | Maps to | Service |
+|-----------------|---------|---------|
+| `sign` | `sign.seamvex.com` | `seamvex-documenso` |
+
+### 5b. Squarespace DNS (seamvex.com)
+
+Add to **Custom records** (do not change email records):
+
+| Type | Host | Data |
+|------|------|------|
+| CNAME | `sign` | `ghs.googlehosted.com` |
+
+If GCP **DNS Records** on the mapping shows different values, use those instead.
+
+### 5c. Verify
+
+1. `https://sign.seamvex.com` loads Documenso UI
+2. `https://sign.seamvex.com/api/v2` responds (not 503)
+3. Cloud Run mapping → **Active** (SSL can take up to 24h)

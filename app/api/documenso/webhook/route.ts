@@ -29,14 +29,15 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as { event?: string; payload?: DocumensoWebhookPayload }
-  if (body.event !== "DOCUMENT_COMPLETED" || !body.payload?.id) {
+  if (body.event !== "DOCUMENT_COMPLETED" || body.payload?.id == null) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
-  const documentId = body.payload.id
+  const payload = body.payload
+  const documentId = String(payload.id)
   let order = await getOrderByDocumensoDocumentId(documentId)
-  if (!order && body.payload.externalId) {
-    order = await getOrder(body.payload.externalId)
+  if (!order && payload.externalId) {
+    order = await getOrder(payload.externalId)
   }
 
   if (!order) {
@@ -46,9 +47,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, alreadySigned: true })
   }
 
+  const envelopeId =
+    order.documensoDocumentId ??
+    payload.envelopeId ??
+    payload.Recipient?.[0]?.envelopeId
+  if (!envelopeId) {
+    return NextResponse.json({ error: "No Documenso envelope id" }, { status: 500 })
+  }
+
   try {
-    const pdfBuffer = await downloadSignedPdf(documentId)
-    const signature = extractSignatureFromWebhook(body.payload)
+    const pdfBuffer = await downloadSignedPdf(envelopeId)
+    const signature = extractSignatureFromWebhook(payload)
     const pdfPath = await saveOrderPdf(order.id, `${order.documentNumber}-signed.pdf`, pdfBuffer)
     await markOrderSigned(order.id, signature, pdfPath)
 
@@ -68,7 +77,7 @@ export async function POST(request: Request) {
         kind: "system",
         body: "Agreement signed via Documenso.",
         metadata: {
-          documentId,
+          documentId: envelopeId,
           xeroInvoiceId: invoiceId,
         },
       })

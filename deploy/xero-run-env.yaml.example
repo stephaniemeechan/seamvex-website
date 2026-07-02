@@ -1,5 +1,0 @@
-# Copy to deploy/xero-run-env.yaml (gitignored) and fill from Xero app Connection tab.
-XERO_CLIENT_ID: ""
-XERO_CLIENT_SECRET: ""
-XERO_REDIRECT_URI: "https://seamvex.com/api/xero/callback"
-XERO_SALES_ACCOUNT_CODE: "200"
